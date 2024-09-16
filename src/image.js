@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer from './footer';
-import { Container, Typography } from '@mui/material';
+import { Button, Container, Typography } from '@mui/material';
 
 function ImagePage() {
     const [image, setImage] = useState(null);
@@ -19,6 +19,10 @@ function ImagePage() {
         }
     };
 
+    const deleteImage = () => {
+        setImage(null);
+    };
+
     const handleImageOperation = () => {
     };
 
@@ -29,7 +33,11 @@ function ImagePage() {
             <Typography>Image Page</Typography>
             <input type="file" accept="image/*" onChange={handleImageUpload} />
             {image && <img src={image} alt="Uploaded Image" />}
-            <button onClick={handleImageOperation}>Apply Operation</button>
+            <div>
+                <Button variant="contained" onClick={deleteImage}>Delete image</Button>
+                 <Button variant="contained" onClick={handleImageOperation}>Apply Operation</Button>
+            </div>
+           
         </Container>
         <Footer/>
         </>
