@@ -34,8 +34,8 @@ function ImagePage() {
             <input type="file" accept="image/*" onChange={handleImageUpload} />
             {image && <img src={image} alt="Uploaded Image" />}
             <div>
-                <Button variant="contained" onClick={deleteImage}>Delete image</Button>
-                 <Button variant="contained" onClick={handleImageOperation}>Apply Operation</Button>
+                {image && <Button variant="contained" onClick={deleteImage}>Delete image</Button>}
+                <Button variant="contained" onClick={handleImageOperation}>Apply Operation</Button>
             </div>
            
         </Container>
