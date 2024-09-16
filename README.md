@@ -1,4 +1,54 @@
-# Getting Started with Create React App
+# BONNE PRATIQUES DE DEVELOPPEMENT
+## 1. Introduction
+Ce document a pour but de définir les bonnes pratiques de développement à suivre lors de la réalisation d'un projet informatique. Ces bonnes pratiques sont basées sur les standards de développement web et mobile. Elles sont destinées à garantir la qualité du code, la maintenabilité du projet et la collaboration entre les développeurs.
+## 2. Organisation du projet
+### 2.1. Structure du projet
+La structure du projet doit être organisée de manière à ce que les fichiers soient faciles à retrouver. Il est recommandé de suivre une structure de projet standard. Voici un exemple de structure de projet pour une application web :
+```
+my-app/
+  README.md
+  node_modules/
+  package.json
+  public/
+    index.html
+    favicon.ico
+  src/
+    components/
+      Header.js
+      Footer.js
+    pages/
+      Home.js
+      About.js
+    App.css
+    App.js
+    index.css
+    index.js
+```
+### 2.2. Nommage des fichiers
+Les fichiers doivent être nommés de manière à ce qu'ils soient faciles à retrouver. Il est recommandé de suivre une convention de nommage standard. Voici un exemple de convention de nommage pour les fichiers d'une application web :
+- Les noms de fichiers doivent être en minuscules.
+- Les noms de fichiers doivent être en anglais.
+- Les noms de fichiers doivent être descriptifs.
+- Les noms de fichiers doivent être séparés par des tirets bas.
+- Les noms de fichiers doivent avoir une extension correspondant à leur type (par exemple, .js pour les fichiers JavaScript, .css pour les fichiers CSS, .html pour les fichiers HTML).
+- Les noms de fichiers doivent être courts et concis.
+## 3. Manipulation git
+### 3.1. Branches
+Il est recommandé de travailler sur des branches séparées pour chaque fonctionnalité ou tâche. Cela permet de séparer le code en fonctionnalités distinctes et de faciliter la collaboration entre les développeurs. Voici un exemple de convention de nommage pour les branches d'un projet :
+- Les noms de branches doivent être en minuscules.
+- Les noms de branches doivent être en anglais.
+- Les noms de branches doivent être descriptifs.
+### 3.2. Commits
+Il est recommandé de faire des commits réguliers et de les commenter de manière à ce qu'ils soient faciles à comprendre. 
+Pour chaque commit, il est recommandé de suivre les règles suivantes :
+- Le message de commit doit être en anglais.
+- Le message de commit doit être descriptif.
+- Le message de commit doit commencer par une majuscule.
+- Pour faire un commit, il faut **créer une branch** et **push** les modifications sur cette branche.
+
+
+# REACT INITIAL DOCUMENTATION
+## Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
