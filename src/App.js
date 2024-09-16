@@ -1,6 +1,7 @@
 import './App.css';
 import Home from './home';
 import { BrowserRouter as Router, Route, Routes} from 'react-router-dom';
+import ImagePage from './image';
 
 function App() {
   return (
@@ -8,6 +9,7 @@ function App() {
      <Router>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/image" element={<ImagePage />} />
       </Routes>
       </Router>
    </body>
