@@ -24,6 +24,22 @@ function ImagePage() {
     };
 
     const handleImageOperation = () => {
+        const rotatedImage = document.createElement('canvas');
+        const ctx = rotatedImage.getContext('2d');
+        const img = new Image();
+        img.src = image;
+
+        img.onload = () => {
+            rotatedImage.width = img.height;
+            rotatedImage.height = img.width;
+
+            ctx.translate(rotatedImage.width / 2, rotatedImage.height / 2);
+            ctx.rotate(Math.PI / 2);
+            ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+            const rotatedImageUrl = rotatedImage.toDataURL();
+            setImage(rotatedImageUrl);
+        };
     };
 
     return (
@@ -35,7 +51,7 @@ function ImagePage() {
             {image && <img src={image} alt="Uploaded Image" />}
             <div>
                 {image && <Button variant="contained" onClick={deleteImage}>Delete image</Button>}
-                <Button variant="contained" onClick={handleImageOperation}>Apply Operation</Button>
+                {image && <Button variant="contained" onClick={handleImageOperation}>Tourne</Button>}
             </div>
            
         </Container>
