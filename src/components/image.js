@@ -161,7 +161,7 @@ function ImagePage() {
             ctx.putImageData(imageData, 0, 0);
 
             const grayscaleImageUrl = canvas.toDataURL();
-            setImage(grayscaleImageUrl);
+            applyModification(grayscaleImageUrl); // Apply and save modification
         };
     };
 
