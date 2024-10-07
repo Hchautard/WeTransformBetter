@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ResponsiveAppBar from './appBar';
-import Footer from './footer';
+import Footer from '../src/footer';
 import { Button, Container, Typography } from '@mui/material';
 import ColorPicker from 'material-ui-color-picker';
 
