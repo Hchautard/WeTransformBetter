@@ -165,6 +165,18 @@ function ImagePage() {
         };
     };
 
+    
+    const downloadImage = () => {
+        if (!image) return; // Ne rien faire si aucune image
+
+        const link = document.createElement('a');
+        link.href = image;
+        link.setAttribute('download', 'image.png'); // Nom du fichier téléchargé
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link); // Nettoie le DOM
+    };
+
     return (
     <>
         <ResponsiveAppBar />
@@ -178,6 +190,8 @@ function ImagePage() {
                 {image && <Button variant="contained" onClick={inverseImage}>Inverse</Button>}
                 {image && <Button variant="contained" onClick={cancelModification}>Cancel Last Modification</Button>}
                 {image && <Button variant="contained" onClick={convertToGrayscale}>Grayscale</Button>}
+                {image && <Button variant="contained" onClick={downloadImage}>Télécharger</Button>} {/* Bouton de téléchargement */}
+
                 {image && (
                     <ColorPicker
                         defaultValue="#000000"
