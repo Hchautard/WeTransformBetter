@@ -70,6 +70,17 @@ function ImagePage() {
         };
     };
 
+    const downloadImage = () => {
+        if (!image) return; // Ne rien faire si aucune image
+
+        const link = document.createElement('a');
+        link.href = image;
+        link.setAttribute('download', 'image.png'); // Nom du fichier téléchargé
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link); // Nettoie le DOM
+    };
+
     return (
     <>
     <ResponsiveAppBar/>
@@ -81,6 +92,8 @@ function ImagePage() {
                 {image && <Button variant="contained" onClick={deleteImage}>Delete image</Button>}
                 {image && <Button variant="contained" onClick={rotateImage}>Tourne</Button>}
                 {image && <Button variant="contained" onClick={inverseImage}>Inverse</Button>}
+                {image && <Button variant="contained" onClick={downloadImage}>Télécharger</Button>} {/* Bouton de téléchargement */}
+
             </div>
            
         </Container>
