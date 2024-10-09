@@ -178,34 +178,66 @@ function ImagePage() {
     };
 
     return (
-    <>
-        <ResponsiveAppBar />
-        <Container sx={{ margin: '5%' }}>
-            <Typography>Image Page</Typography>
-            <input type="file" accept="image/*" onChange={handleImageUpload} />
-            {image && <img src={image} alt="Uploaded Image" />}
-            <div>
-                {image && <Button variant="contained" onClick={deleteImage}>Delete image</Button>}
-                {image && <Button variant="contained" onClick={rotateImage}>Rotate</Button>}
-                {image && <Button variant="contained" onClick={inverseImage}>Inverse</Button>}
-                {image && <Button variant="contained" onClick={cancelModification}>Cancel Last Modification</Button>}
-                {image && <Button variant="contained" onClick={convertToGrayscale}>Grayscale</Button>}
-                {image && <Button variant="contained" onClick={downloadImage}>Télécharger</Button>} {/* Bouton de téléchargement */}
+        <>
+            <ResponsiveAppBar />
+            <Container sx={{ margin: '5%' }}>
+                <Typography>Image Page</Typography>
+                <input type="file" accept="image/*" onChange={handleImageUpload} />
+                {image && <img src={image} alt="Uploaded Image" style={{ maxWidth: '100%', maxHeight: '500px' }} />}
+              
+                <div>
+                    {image && (
+                        <Button variant="contained" style={{ marginTop: '10px', marginLeft:'10px' }} onClick={deleteImage}>
+                            Delete image
+                        </Button>
+                    )}
+                    {image && (
+                        <Button variant="contained" style={{ marginTop: '10px', marginLeft:'10px' }} onClick={cancelModification}>
+                            Cancel Last Modification
+                        </Button>
+                    )}
+                    {image && (
+                        <Button variant="contained" style={{ marginTop: '10px', marginLeft:'10px' }} onClick={downloadImage}>
+                            Télécharger
+                        </Button>
+                    )}
+                    <br />
+                    {image && (
+                        <Button variant="contained" style={{ marginTop: '10px', marginLeft:'10px' }} onClick={rotateImage}>
+                            Rotate
+                        </Button>
+                    )}
+                    {image && (
+                        <Button variant="contained" style={{ marginTop: '10px', marginLeft:'10px' }} onClick={inverseImage}>
+                            Inverse
+                        </Button>
+                    )}
+                    {image && (
+                        <Button variant="contained" style={{ marginTop: '10px', marginLeft:'10px' }} onClick={convertToGrayscale}>
+                            Grayscale
+                        </Button>
+                    )}
+                    {image && (
+                        <ColorPicker
+                            defaultValue="#000000"
+                            style={{ marginTop: '10px', marginLeft:'30px'}}
+                            onChange={(color) => {
+                                console.log("Selected Color:", color);
+                                setColor(color);
+                               
+                            }}
+                        />
+                    )}
+                    {image && (
+                        <Button variant="contained" onClick={changeImageColor} sx>
+                            Change Color
+                        </Button>
+                    )}
+                </div>
 
-                {image && (
-                    <ColorPicker
-                        defaultValue="#000000"
-                        onChange={(color) => {
-                            console.log("Selected Color:", color);
-                            setColor(color);
-                        }}
-                    />
-                )}
-                {image && <Button variant="contained" onClick={changeImageColor}>Change Color</Button>}
-            </div>
-        </Container>
-        <Footer />
-    </>
+            </Container>
+            <Footer />
+        </>
     );
 }
 
