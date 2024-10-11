@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer from './footer';
-import { Button, Container, Typography } from '@mui/material';
+import { Button, Container, Typography, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import ColorPicker from 'material-ui-color-picker';
 
 function ImagePage() {
     const [image, setImage] = useState(null);
     const [imageHistory, setImageHistory] = useState([]); // Track history of image modifications
     const [selectedColor, setColor] = useState('#000000');
+    const [previewOpen, setPreviewOpen] = useState(false); // État pour gérer l'ouverture du modal de prévisualisation
 
     const handleImageUpload = (event) => {
         const file = event.target.files[0];
@@ -165,7 +166,6 @@ function ImagePage() {
         };
     };
 
-    
     const downloadImage = () => {
         if (!image) return; // Ne rien faire si aucune image
 
@@ -177,64 +177,122 @@ function ImagePage() {
         document.body.removeChild(link); // Nettoie le DOM
     };
 
+    // Fonction pour gérer le clic sur le bouton de téléchargement (ouvre le modal)
+    const handleDownloadClick = () => {
+        setPreviewOpen(true);
+    };
+
     return (
         <>
             <ResponsiveAppBar />
             <Container sx={{ margin: '5%' }}>
-                <Typography>Image Page</Typography>
+                <Typography variant="h4" gutterBottom>
+                    Image Page
+                </Typography>
                 <input type="file" accept="image/*" onChange={handleImageUpload} />
-                {image && <img src={image} alt="Uploaded Image" style={{ maxWidth: '100%', maxHeight: '500px' }} />}
-              
-                <div>
+                {image && (
+                    <img
+                        src={image}
+                        alt="Uploaded Image"
+                        style={{ maxWidth: '100%', maxHeight: '500px', marginTop: '20px' }}
+                    />
+                )}
+
+                <div style={{ marginTop: '20px' }}>
                     {image && (
-                        <Button variant="contained" style={{ marginTop: '10px', marginLeft:'10px' }} onClick={deleteImage}>
-                            Delete image
-                        </Button>
-                    )}
-                    {image && (
-                        <Button variant="contained" style={{ marginTop: '10px', marginLeft:'10px' }} onClick={cancelModification}>
-                            Cancel Last Modification
-                        </Button>
-                    )}
-                    {image && (
-                        <Button variant="contained" style={{ marginTop: '10px', marginLeft:'10px' }} onClick={downloadImage}>
-                            Télécharger
-                        </Button>
-                    )}
-                    <br />
-                    {image && (
-                        <Button variant="contained" style={{ marginTop: '10px', marginLeft:'10px' }} onClick={rotateImage}>
-                            Rotate
-                        </Button>
-                    )}
-                    {image && (
-                        <Button variant="contained" style={{ marginTop: '10px', marginLeft:'10px' }} onClick={inverseImage}>
-                            Inverse
-                        </Button>
-                    )}
-                    {image && (
-                        <Button variant="contained" style={{ marginTop: '10px', marginLeft:'10px' }} onClick={convertToGrayscale}>
-                            Grayscale
-                        </Button>
-                    )}
-                    {image && (
-                        <ColorPicker
-                            defaultValue="#000000"
-                            style={{ marginTop: '10px', marginLeft:'30px'}}
-                            onChange={(color) => {
-                                console.log("Selected Color:", color);
-                                setColor(color);
-                               
-                            }}
-                        />
-                    )}
-                    {image && (
-                        <Button variant="contained" onClick={changeImageColor} sx>
-                            Change Color
-                        </Button>
+                        <>
+                            <Button
+                                variant="contained"
+                                color="error"
+                                style={{ marginRight: '10px', marginBottom: '10px' }}
+                                onClick={deleteImage}
+                            >
+                                Supprimer l'image
+                            </Button>
+                            <Button
+                                variant="contained"
+                                style={{ marginRight: '10px', marginBottom: '10px' }}
+                                onClick={cancelModification}
+                                disabled={imageHistory.length <= 1}
+                            >
+                                Annuler la dernière modification
+                            </Button>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                style={{ marginRight: '10px', marginBottom: '10px' }}
+                                onClick={handleDownloadClick}
+                            >
+                                Télécharger
+                            </Button>
+                            <br />
+                            <Button
+                                variant="contained"
+                                style={{ marginRight: '10px', marginBottom: '10px' }}
+                                onClick={rotateImage}
+                            >
+                                Tourner
+                            </Button>
+                            <Button
+                                variant="contained"
+                                style={{ marginRight: '10px', marginBottom: '10px' }}
+                                onClick={inverseImage}
+                            >
+                                Inverser
+                            </Button>
+                            <Button
+                                variant="contained"
+                                style={{ marginRight: '10px', marginBottom: '10px' }}
+                                onClick={convertToGrayscale}
+                            >
+                                Niveaux de gris
+                            </Button>
+                            <ColorPicker
+                                defaultValue="#000000"
+                                style={{ marginTop: '10px', marginLeft: '30px', marginBottom: '10px' }}
+                                onChange={(color) => {
+                                    console.log("Couleur sélectionnée :", color);
+                                    setColor(color);
+                                }}
+                            />
+                            <Button
+                                variant="contained"
+                                color="secondary"
+                                onClick={changeImageColor}
+                                style={{ marginLeft: '10px', marginBottom: '10px' }}
+                            >
+                                Changer la couleur
+                            </Button>
+                        </>
                     )}
                 </div>
 
+                {/* Modal de prévisualisation */}
+                <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} maxWidth="md" fullWidth>
+                    <DialogTitle>Prévisualisation de l'image à télécharger</DialogTitle>
+                    <DialogContent dividers>
+                        {image && (
+                            <img
+                                src={image}
+                                alt="Preview"
+                                style={{ width: '100%', height: 'auto' }}
+                            />
+                        )}
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setPreviewOpen(false)}>Annuler</Button>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => {
+                                downloadImage();
+                                setPreviewOpen(false);
+                            }}
+                        >
+                            Télécharger
+                        </Button>
+                    </DialogActions>
+                </Dialog>
             </Container>
             <Footer />
         </>

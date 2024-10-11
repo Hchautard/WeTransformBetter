@@ -16,7 +16,7 @@ export default function Footer() {
       }}
     >
       <Container maxWidth="lg">
-        <Grid container spacing={5}>
+        {/* <Grid container spacing={5}>
           <Grid item xs={12} sm={4}>
             <Typography variant="h6" color="text.primary" gutterBottom>
             text
@@ -43,7 +43,7 @@ export default function Footer() {
             </Typography>
            
           </Grid>
-        </Grid>
+        </Grid> */}
         <Box mt={5}>
           <Typography variant="body2" color="text.secondary" align="center">
             {"Copyright © "}
