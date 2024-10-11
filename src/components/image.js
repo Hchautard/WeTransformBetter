@@ -1,14 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer from './footer';
 import { Button, Container, Typography, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
-import ColorPicker from 'material-ui-color-picker';
+import { ChromePicker } from 'react-color'; // Import du ChromePicker
 
 function ImagePage() {
     const [image, setImage] = useState(null);
-    const [imageHistory, setImageHistory] = useState([]); // Track history of image modifications
+    const [originalImage, setOriginalImage] = useState(null); // Stocker l'image originale
+    const [imageHistory, setImageHistory] = useState([]); // Suivre l'historique des modifications
     const [selectedColor, setColor] = useState('#000000');
     const [previewOpen, setPreviewOpen] = useState(false); // État pour gérer l'ouverture du modal de prévisualisation
+
+    // Fonction utilitaire pour convertir une couleur hex en RGB
+    const hexToRgb = (hex) => {
+        // Retirer le '#' s'il est présent
+        hex = hex.replace(/^#/, '');
+        // Support des codes courts (#RGB)
+        if (hex.length === 3) {
+            hex = hex.split('').map(c => c + c).join('');
+        }
+        const bigint = parseInt(hex, 16);
+        if (isNaN(bigint)) return null;
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return { r, g, b };
+    };
+
+    useEffect(() => {
+        console.log("selectedColor a changé :", selectedColor);
+    }, [selectedColor]);
 
     const handleImageUpload = (event) => {
         const file = event.target.files[0];
@@ -16,7 +37,9 @@ function ImagePage() {
 
         reader.onload = () => {
             setImage(reader.result);
-            setImageHistory([reader.result]); // Reset history on new image upload
+            setOriginalImage(reader.result); // Stocker l'image originale
+            setImageHistory([reader.result]); // Réinitialiser l'historique
+            setColor('#000000'); // Réinitialiser la couleur sélectionnée
         };
 
         if (file) {
@@ -27,28 +50,39 @@ function ImagePage() {
     const cancelModification = () => {
         if (imageHistory.length > 1) {
             const newHistory = [...imageHistory];
-            newHistory.pop(); // Remove the latest modification
-            const lastImage = newHistory[newHistory.length - 1]; // Get the previous image
+            newHistory.pop(); // Supprimer la dernière modification
+            const lastImage = newHistory[newHistory.length - 1]; // Obtenir l'image précédente
             setImage(lastImage);
-            setImageHistory(newHistory); // Update history
+            setImageHistory(newHistory); // Mettre à jour l'historique
         }
     };
 
     const applyModification = (newImage) => {
-        setImageHistory([...imageHistory, newImage]); // Save current state to history
-        setImage(newImage); // Update image with the modified version
+        setImageHistory([...imageHistory, newImage]); // Sauvegarder l'état actuel dans l'historique
+        setImage(newImage); // Mettre à jour l'image avec la version modifiée
     };
 
     const changeImageColor = () => {
         if (!selectedColor) {
-            console.log(selectedColor);
+            console.log("Aucune couleur sélectionnée.");
+            return;
+        }
+
+        if (!originalImage) {
+            console.log("Aucune image originale disponible.");
+            return;
+        }
+
+        const rgb = hexToRgb(selectedColor);
+        if (!rgb) {
+            console.log("Format de couleur invalide :", selectedColor);
             return;
         }
 
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
-        img.src = image;
+        img.src = originalImage; // Utiliser l'image originale
 
         img.onload = () => {
             canvas.width = img.width;
@@ -59,30 +93,35 @@ function ImagePage() {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
 
+            // Appliquer une teinte basée sur la couleur sélectionnée
             for (let i = 0; i < data.length; i += 4) {
-                const red = data[i];
-                const green = data[i + 1];
-                const blue = data[i + 2];
-
-                const newRed = (red * parseInt(selectedColor.slice(1, 3), 16)) / 255;
-                const newGreen = (green * parseInt(selectedColor.slice(3, 5), 16)) / 255;
-                const newBlue = (blue * parseInt(selectedColor.slice(5, 7), 16)) / 255;
-
-                data[i] = newRed;
-                data[i + 1] = newGreen;
-                data[i + 2] = newBlue;
+                // Mélange linéaire des couleurs
+                data[i] = data[i] * (1 - 0.5) + rgb.r * 0.5;       // Rouge
+                data[i + 1] = data[i + 1] * (1 - 0.5) + rgb.g * 0.5; // Vert
+                data[i + 2] = data[i + 2] * (1 - 0.5) + rgb.b * 0.5; // Bleu
+                // data[i + 3] reste inchangé (alpha)
             }
 
             ctx.putImageData(imageData, 0, 0);
 
             const coloredImageUrl = canvas.toDataURL();
-            applyModification(coloredImageUrl); // Apply and save modification
+            setImageHistory([originalImage, coloredImageUrl]); // Réinitialiser l'historique avec l'image originale et la couleur appliquée
+            setImage(coloredImageUrl); // Mettre à jour l'image
+
+            // Optionnel : Réinitialiser la couleur sélectionnée si nécessaire
+            // setColor('#000000'); // Décommentez cette ligne si vous souhaitez réinitialiser la couleur après l'application
+        };
+
+        img.onerror = () => {
+            console.log("Erreur de chargement de l'image.");
         };
     };
 
     const deleteImage = () => {
         setImage(null);
-        setImageHistory([]); // Clear history
+        setOriginalImage(null); // Supprimer l'image originale
+        setImageHistory([]); // Effacer l'historique
+        setColor('#000000'); // Réinitialiser la couleur sélectionnée
     };
 
     const rotateImage = () => {
@@ -100,7 +139,11 @@ function ImagePage() {
             ctx.drawImage(img, -img.width / 2, -img.height / 2);
 
             const rotatedImageUrl = rotatedImage.toDataURL();
-            applyModification(rotatedImageUrl); // Apply and save modification
+            applyModification(rotatedImageUrl); // Appliquer et enregistrer la modification
+        };
+
+        img.onerror = () => {
+            console.log("Erreur de chargement de l'image pour rotation.");
         };
     };
 
@@ -120,15 +163,20 @@ function ImagePage() {
             const data = imageData.data;
 
             for (let i = 0; i < data.length; i += 4) {
-                data[i] = 255 - data[i];       // Invert Red
-                data[i + 1] = 255 - data[i + 1]; // Invert Green
-                data[i + 2] = 255 - data[i + 2]; // Invert Blue
+                data[i] = 255 - data[i];         // Inverser le Rouge
+                data[i + 1] = 255 - data[i + 1]; // Inverser le Vert
+                data[i + 2] = 255 - data[i + 2]; // Inverser le Bleu
+                // data[i + 3] reste inchangé (alpha)
             }
 
             ctx.putImageData(imageData, 0, 0);
 
             const invertedImageUrl = canvas.toDataURL();
-            applyModification(invertedImageUrl); // Apply and save modification
+            applyModification(invertedImageUrl); // Appliquer et enregistrer la modification
+        };
+
+        img.onerror = () => {
+            console.log("Erreur de chargement de l'image pour inversion.");
         };
     };
 
@@ -157,12 +205,17 @@ function ImagePage() {
                 data[i] = grayscale;
                 data[i + 1] = grayscale;
                 data[i + 2] = grayscale;
+                // data[i + 3] reste inchangé (alpha)
             }
 
             ctx.putImageData(imageData, 0, 0);
 
             const grayscaleImageUrl = canvas.toDataURL();
-            applyModification(grayscaleImageUrl); // Apply and save modification
+            applyModification(grayscaleImageUrl); // Appliquer et enregistrer la modification
+        };
+
+        img.onerror = () => {
+            console.log("Erreur de chargement de l'image pour niveaux de gris.");
         };
     };
 
@@ -174,7 +227,7 @@ function ImagePage() {
         link.setAttribute('download', 'image.png'); // Nom du fichier téléchargé
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link); // Nettoie le DOM
+        document.body.removeChild(link); // Nettoyer le DOM
     };
 
     // Fonction pour gérer le clic sur le bouton de téléchargement (ouvre le modal)
@@ -247,22 +300,24 @@ function ImagePage() {
                             >
                                 Niveaux de gris
                             </Button>
-                            <ColorPicker
-                                defaultValue="#000000"
-                                style={{ marginTop: '10px', marginLeft: '30px', marginBottom: '10px' }}
-                                onChange={(color) => {
-                                    console.log("Couleur sélectionnée :", color);
-                                    setColor(color);
-                                }}
-                            />
-                            <Button
-                                variant="contained"
-                                color="secondary"
-                                onClick={changeImageColor}
-                                style={{ marginLeft: '10px', marginBottom: '10px' }}
-                            >
-                                Changer la couleur
-                            </Button>
+                            <div style={{ display: 'flex', alignItems: 'center', marginTop: '10px' }}>
+                                <ChromePicker
+                                    color={selectedColor}
+                                    onChangeComplete={(color) => {
+                                        console.log("Couleur sélectionnée :", color.hex);
+                                        setColor(color.hex);
+                                    }}
+                                    disableAlpha // Désactiver l'alpha si non nécessaire
+                                />
+                                <Button
+                                    variant="contained"
+                                    color="secondary"
+                                    onClick={changeImageColor}
+                                    style={{ marginLeft: '10px', marginBottom: '10px' }}
+                                >
+                                    Changer la couleur
+                                </Button>
+                            </div>
                         </>
                     )}
                 </div>
