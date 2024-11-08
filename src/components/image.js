@@ -251,10 +251,15 @@ function ImagePage() {
                 <input type="file" accept="image/*" onChange={handleImageUpload} />
                 {image && (
                     <img
-                        src={image}
-                        alt="Uploaded Image"
-                        style={{ maxWidth: '100%', maxHeight: '500px', marginTop: '20px' }}
-                    />
+                    src={image}
+                    alt="Uploaded Image"
+                    style={{
+                        maxWidth: '100%',
+                        maxHeight: '500px',
+                        marginTop: '20px',
+                        objectFit: 'contain',
+                    }}
+                />
                 )}
 
                 <div style={{ marginTop: '20px' }}>
