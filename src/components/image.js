@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer from './footer';
-import { Button, Container, Typography, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button, Container, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Box } from '@mui/material';
 import { ChromePicker } from 'react-color'; // Import du ChromePicker
 
 function ImagePage() {
@@ -238,7 +238,13 @@ function ImagePage() {
     return (
         <>
             <ResponsiveAppBar />
-            <Container sx={{ margin: '5%' }}>
+            <Container sx={{
+                    margin: '5%',
+                    minHeight: 'calc(100vh - 64px - 300px)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                }}>
                 <Typography variant="h4" gutterBottom>
                     Image Page
                 </Typography>
@@ -349,7 +355,16 @@ function ImagePage() {
                     </DialogActions>
                 </Dialog>
             </Container>
-            <Footer />
+            <Box
+                sx={{
+                    position: 'relative',
+                    bottom: 0,
+                    width: '100%',
+                    mt: 2, 
+                }}
+            >
+                <Footer />
+            </Box>
         </>
     );
 }
