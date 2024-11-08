@@ -2,16 +2,17 @@ import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer from './footer';
 import { Button, Container, Typography, Dialog, DialogTitle, DialogContent, TextField, DialogActions, Box } from '@mui/material';
-import { ChromePicker } from 'react-color'; // Import du ChromePicker
+import { ChromePicker } from 'react-color';
 
 function ImagePage() {
-    const [image, setImage] = useState(null);
-    const [originalImage, setOriginalImage] = useState(null); 
+    const [images, setImages] = useState([]); // Tableau pour plusieurs images
+    const [originalImages, setOriginalImages] = useState([]); // Images originales pour les traitements
     const [imageHistory, setImageHistory] = useState([]); 
     const [selectedColor, setColor] = useState('#000000');
-    const [previewOpen, setPreviewOpen] = useState(false); // État pour gérer l'ouverture du modal de prévisualisation
+    const [previewOpen, setPreviewOpen] = useState(false);
     const [imageUrl, setImageUrl] = useState('');
     const [imageName, setImageName] = useState('');
+    const [selectedImageIndex, setSelectedImageIndex] = useState(null); // Index de l'image sélectionnée pour modification
 
     const hexToRgb = (hex) => {
         hex = hex.replace(/^#/, '');
@@ -36,13 +37,13 @@ function ImagePage() {
         const localUrl = URL.createObjectURL(blob);
         return localUrl;
     };
-    
+
     const handleImageUrlSubmit = async () => {
         if (imageUrl) {
             try {
                 const localImageUrl = await loadImageFromUrl(imageUrl);
-                setImage(localImageUrl);
-                setOriginalImage(localImageUrl);
+                setImages([localImageUrl]);
+                setOriginalImages([localImageUrl]);
                 setImageHistory([localImageUrl]);
                 setImageUrl('');
             } catch (error) {
@@ -50,47 +51,61 @@ function ImagePage() {
             }
         }
     };
-    
 
     const handleImageUpload = (event) => {
-        const file = event.target.files[0];
-        const reader = new FileReader();
+        const files = event.target.files;
 
-        reader.onload = () => {
-            setImage(reader.result);
-            setOriginalImage(reader.result); 
-            setImageHistory([reader.result]);
-            setColor('#000000'); 
-            setImageName(file.name.split('.')[0]); // Extraire le nom de l'image sans extension
-        };
-
-        if (file) {
-            reader.readAsDataURL(file);
+        if (files.length > 4) {
+            alert("Vous pouvez importer un maximum de 4 images.");
+            return;
         }
+
+        const fileArray = Array.from(files);
+        const readerPromises = fileArray.map((file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        });
+
+        Promise.all(readerPromises)
+            .then((imageUrls) => {
+                setImages(imageUrls);
+                setOriginalImages(imageUrls);
+                setImageHistory(imageUrls);
+                setImageName(fileArray[0].name.split('.')[0]);
+            })
+            .catch((error) => console.error("Erreur de lecture de fichier", error));
     };
 
     const cancelModification = () => {
-        if (imageHistory.length > 1) {
+        if (imageHistory.length > 1 && selectedImageIndex !== null) {
             const newHistory = [...imageHistory];
-            newHistory.pop(); 
-            const lastImage = newHistory[newHistory.length - 1]; 
-            setImage(lastImage);
-            setImageHistory(newHistory); 
+            newHistory.pop();
+            const lastImage = newHistory[newHistory.length - 1];
+            const newImages = [...images];
+            newImages[selectedImageIndex] = lastImage;
+            setImages(newImages);
+            setImageHistory(newHistory);
         }
     };
 
     const applyModification = (newImage) => {
+        const newImages = [...images];
+        newImages[selectedImageIndex] = newImage;
         setImageHistory([...imageHistory, newImage]);
-        setImage(newImage); 
+        setImages(newImages);
     };
 
     const changeImageColor = () => {
-        if (!selectedColor) {
-            console.log("Aucune couleur sélectionnée.");
+        if (!selectedColor || selectedImageIndex === null) {
+            console.log("Aucune couleur sélectionnée ou image non sélectionnée.");
             return;
         }
 
-        if (!originalImage) {
+        if (!originalImages.length) {
             console.log("Aucune image originale disponible.");
             return;
         }
@@ -104,7 +119,7 @@ function ImagePage() {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
-        img.src = originalImage;
+        img.src = originalImages[selectedImageIndex];
 
         img.onload = () => {
             canvas.width = img.width;
@@ -124,8 +139,7 @@ function ImagePage() {
             ctx.putImageData(imageData, 0, 0);
 
             const coloredImageUrl = canvas.toDataURL();
-            setImageHistory([originalImage, coloredImageUrl]); 
-            setImage(coloredImageUrl); 
+            applyModification(coloredImageUrl);
         };
 
         img.onerror = () => {
@@ -134,18 +148,27 @@ function ImagePage() {
     };
 
     const deleteImage = () => {
-        setImage(null);
-        setOriginalImage(null); 
-        setImageHistory([]); 
-        setColor('#000000'); 
-        setImageName(''); // Réinitialiser le nom de l'image
+        if (selectedImageIndex !== null) {
+            const newImages = [...images];
+            const newOriginalImages = [...originalImages];
+            newImages.splice(selectedImageIndex, 1);
+            newOriginalImages.splice(selectedImageIndex, 1);
+            setImages(newImages);
+            setOriginalImages(newOriginalImages);
+            setImageHistory([]);
+            setColor('#000000');
+            setImageName('');
+            setSelectedImageIndex(null);
+        }
     };
 
     const rotateImage = () => {
+        if (selectedImageIndex === null) return;
+
         const rotatedImage = document.createElement('canvas');
         const ctx = rotatedImage.getContext('2d');
         const img = new Image();
-        img.src = image;
+        img.src = images[selectedImageIndex];
 
         img.onload = () => {
             rotatedImage.width = img.height;
@@ -165,10 +188,12 @@ function ImagePage() {
     };
 
     const inverseImage = () => {
+        if (selectedImageIndex === null) return;
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
-        img.src = image;
+        img.src = images[selectedImageIndex];
 
         img.onload = () => {
             canvas.width = img.width;
@@ -197,10 +222,12 @@ function ImagePage() {
     };
 
     const convertToGrayscale = () => {
+        if (selectedImageIndex === null) return;
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
-        img.src = image;
+        img.src = images[selectedImageIndex];
 
         img.onload = () => {
             canvas.width = img.width;
@@ -234,13 +261,12 @@ function ImagePage() {
         };
     };
 
-    const downloadImage = () => {
-        if (!image) return;
+    const downloadImage = (index) => {
+        if (images.length === 0) return;
 
         const link = document.createElement('a');
-        link.href = image;
-        console.log("Image à télécharger :", image);
-        link.setAttribute('download', `${imageName}-WTB.png`); // Utiliser le format {nom_image}-WTB
+        link.href = images[index];
+        link.setAttribute('download', `${imageName}-WTB.png`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -263,7 +289,9 @@ function ImagePage() {
                 <Typography variant="h4" gutterBottom>
                     Image Page
                 </Typography>
-                <input type="file" accept="image/*" onChange={handleImageUpload} />
+
+                {/* Upload de plusieurs images */}
+                <input type="file" accept="image/*" onChange={handleImageUpload} multiple />
 
                 <TextField
                     label="Enter Image URL"
@@ -277,115 +305,101 @@ function ImagePage() {
                     Load Image from URL
                 </Button>
 
-                {image && (
-                    <img
-                    src={image}
-                    alt="Uploaded Image"
-                    style={{
-                        maxWidth: '100%',
-                        maxHeight: '500px',
-                        marginTop: '20px',
-                        objectFit: 'contain',
-                    }}
-                />
-                )}
-               
-                <div style={{ marginTop: '20px' }}>
-                    {image && (
-                        <>
-                            <Button
-                                variant="contained"
-                                color="error"
-                                style={{ marginRight: '10px', marginBottom: '10px' }}
-                                onClick={deleteImage}
-                            >
-                                Supprimer l'image
-                            </Button>
-                            <Button
-                                variant="contained"
-                                style={{ marginRight: '10px', marginBottom: '10px' }}
-                                onClick={cancelModification}
-                                disabled={imageHistory.length <= 1}
-                            >
-                                Annuler la dernière modification
-                            </Button>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                style={{ marginRight: '10px', marginBottom: '10px' }}
-                                onClick={handleDownloadClick}
-                            >
-                                Télécharger
-                            </Button>
-                            <br />
-                            <Button
-                                variant="contained"
-                                style={{ marginRight: '10px', marginBottom: '10px' }}
-                                onClick={rotateImage}
-                            >
-                                Tourner
-                            </Button>
-                            <Button
-                                variant="contained"
-                                style={{ marginRight: '10px', marginBottom: '10px' }}
-                                onClick={inverseImage}
-                            >
-                                Inverser
-                            </Button>
-                            <Button
-                                variant="contained"
-                                style={{ marginRight: '10px', marginBottom: '10px' }}
-                                onClick={convertToGrayscale}
-                            >
-                                Niveaux de gris
-                            </Button>
-                            <div style={{ display: 'flex', alignItems: 'center', marginTop: '10px' }}>
-                                <ChromePicker
-                                    color={selectedColor}
-                                    onChangeComplete={(color) => {
-                                        console.log("Couleur sélectionnée :", color.hex);
-                                        setColor(color.hex);
+                {images.length > 0 && (
+                    <div style={{ marginTop: '20px' }}>
+                        {images.map((img, index) => (
+                            <div key={index} style={{ marginBottom: '20px', textAlign: 'center' }}>
+                                <img
+                                    src={img}
+                                    alt={`Uploaded Image ${index + 1}`}
+                                    style={{
+                                        maxWidth: '100%',
+                                        maxHeight: '500px',
+                                        objectFit: 'contain',
                                     }}
-                                    disableAlpha
+                                    onClick={() => setSelectedImageIndex(index)}
                                 />
-                                <Button
-                                    variant="contained"
-                                    color="secondary"
-                                    onClick={changeImageColor}
-                                    style={{ marginLeft: '10px', marginBottom: '10px' }}
-                                >
-                                    Changer la couleur
-                                </Button>
+                                <div>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={() => setSelectedImageIndex(index)}
+                                        style={{ marginTop: '10px', marginRight: '10px' }}
+                                    >
+                                        Modifier
+                                    </Button>
+                                    <Button
+                                        variant="contained"
+                                        color="secondary"
+                                        onClick={() => downloadImage(index)}
+                                        style={{ marginTop: '10px' }}
+                                    >
+                                        Télécharger
+                                    </Button>
+                                </div>
                             </div>
-                        </>
-                    )}
-                </div>
+                        ))}
+                    </div>
+                )}
 
-                <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} maxWidth="md" fullWidth>
-                    <DialogTitle>Prévisualisation de l'image à télécharger</DialogTitle>
-                    <DialogContent dividers>
-                        {image && (
-                            <img
-                                src={image}
-                                alt="Preview"
-                                style={{ width: '100%', height: 'auto' }}
-                            />
-                        )}
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={() => setPreviewOpen(false)}>Annuler</Button>
+                {selectedImageIndex !== null && (
+                    <div style={{ marginTop: '20px' }}>
                         <Button
                             variant="contained"
-                            color="primary"
-                            onClick={() => {
-                                downloadImage();
-                                setPreviewOpen(false);
-                            }}
+                            color="error"
+                            onClick={deleteImage}
+                            style={{ marginRight: '10px', marginBottom: '10px' }}
                         >
-                            Télécharger
+                            Supprimer l'image
                         </Button>
-                    </DialogActions>
-                </Dialog>
+                        <Button
+                            variant="contained"
+                            style={{ marginRight: '10px', marginBottom: '10px' }}
+                            onClick={cancelModification}
+                            disabled={imageHistory.length <= 1}
+                        >
+                            Annuler la dernière modification
+                        </Button>
+                        <Button
+                            variant="contained"
+                            style={{ marginRight: '10px', marginBottom: '10px' }}
+                            onClick={rotateImage}
+                        >
+                            Tourner
+                        </Button>
+                        <Button
+                            variant="contained"
+                            style={{ marginRight: '10px', marginBottom: '10px' }}
+                            onClick={inverseImage}
+                        >
+                            Inverser
+                        </Button>
+                        <Button
+                            variant="contained"
+                            style={{ marginRight: '10px', marginBottom: '10px' }}
+                            onClick={convertToGrayscale}
+                        >
+                            Niveaux de gris
+                        </Button>
+                        <div style={{ display: 'flex', alignItems: 'center', marginTop: '10px' }}>
+                            <ChromePicker
+                                color={selectedColor}
+                                onChangeComplete={(color) => {
+                                    setColor(color.hex);
+                                }}
+                                disableAlpha
+                            />
+                            <Button
+                                variant="contained"
+                                color="secondary"
+                                onClick={changeImageColor}
+                                style={{ marginLeft: '10px', marginBottom: '10px' }}
+                            >
+                                Changer la couleur
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </Container>
             <Box
                 sx={{
