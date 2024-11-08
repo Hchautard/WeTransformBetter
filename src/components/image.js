@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer from './footer';
-import { Button, Container, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Box } from '@mui/material';
+import { Button, Container, Typography, Dialog, DialogTitle, DialogContent, TextField, DialogActions, Box } from '@mui/material';
 import { ChromePicker } from 'react-color'; // Import du ChromePicker
 
 function ImagePage() {
@@ -10,6 +10,7 @@ function ImagePage() {
     const [imageHistory, setImageHistory] = useState([]); // Suivre l'historique des modifications
     const [selectedColor, setColor] = useState('#000000');
     const [previewOpen, setPreviewOpen] = useState(false); // État pour gérer l'ouverture du modal de prévisualisation
+    const [imageUrl, setImageUrl] = useState('');
 
     // Fonction utilitaire pour convertir une couleur hex en RGB
     const hexToRgb = (hex) => {
@@ -30,6 +31,28 @@ function ImagePage() {
     useEffect(() => {
         console.log("selectedColor a changé :", selectedColor);
     }, [selectedColor]);
+
+    const loadImageFromUrl = async (url) => {
+        const response = await fetch(url, { mode: 'cors' });
+        const blob = await response.blob();
+        const localUrl = URL.createObjectURL(blob);
+        return localUrl;
+    };
+    
+    const handleImageUrlSubmit = async () => {
+        if (imageUrl) {
+            try {
+                const localImageUrl = await loadImageFromUrl(imageUrl);
+                setImage(localImageUrl);
+                setOriginalImage(localImageUrl);
+                setImageHistory([localImageUrl]);
+                setImageUrl('');
+            } catch (error) {
+                console.error("Error loading image:", error);
+            }
+        }
+    };
+    
 
     const handleImageUpload = (event) => {
         const file = event.target.files[0];
@@ -249,6 +272,19 @@ function ImagePage() {
                     Image Page
                 </Typography>
                 <input type="file" accept="image/*" onChange={handleImageUpload} />
+
+                <TextField
+                    label="Enter Image URL"
+                    variant="outlined"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleImageUrlSubmit()}
+                    style={{ marginTop: '10px' }}
+                />
+                <Button variant="contained" color="primary" onClick={handleImageUrlSubmit} style={{ marginTop: '10px' }}>
+                    Load Image from URL
+                </Button>
+
                 {image && (
                     <img
                     src={image}
@@ -261,7 +297,7 @@ function ImagePage() {
                     }}
                 />
                 )}
-
+               
                 <div style={{ marginTop: '20px' }}>
                     {image && (
                         <>
