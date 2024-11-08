@@ -1,0 +1,65 @@
+/* Styles de base pour la page des conditions générales */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  h1 {
+    font-size: 2.5rem;
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+  }
+  
+  .article {
+    margin-bottom: 30px;
+  }
+  
+  .article h2 {
+    font-size: 1.8rem;
+    color: #2c3e50;
+    margin-bottom: 10px;
+  }
+  
+  .article p {
+    font-size: 1rem;
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+  
+  .article ul {
+    list-style-type: square;
+    padding-left: 20px;
+    font-size: 1rem;
+    color: #555;
+  }
+  
+  .article ul li {
+    margin-bottom: 5px;
+  }
+  
+  .article a {
+    color: #1e90ff;
+    text-decoration: none;
+  }
+  
+  .article a:hover {
+    text-decoration: underline;
+  }
+  
+  footer {
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 10px 0;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+  }
+  

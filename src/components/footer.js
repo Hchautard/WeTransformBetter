@@ -53,6 +53,12 @@ export default function Footer() {
             {new Date().getFullYear()}
             {"."}
           </Typography>
+          <Typography variant="body2" color="text.secondary" align="center">
+            <Link href="/conditions" color="inherit">
+              Conditions Générales d'Utilisation
+            </Link>
+          </Typography>
+
         </Box>
       </Container>
     </Box>
