@@ -2,20 +2,18 @@ import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer from './footer';
 import { Button, Container, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Box } from '@mui/material';
-import { ChromePicker } from 'react-color'; // Import du ChromePicker
+import { ChromePicker } from 'react-color';
 
 function ImagePage() {
     const [image, setImage] = useState(null);
-    const [originalImage, setOriginalImage] = useState(null); // Stocker l'image originale
-    const [imageHistory, setImageHistory] = useState([]); // Suivre l'historique des modifications
+    const [originalImage, setOriginalImage] = useState(null); 
+    const [imageHistory, setImageHistory] = useState([]); 
     const [selectedColor, setColor] = useState('#000000');
-    const [previewOpen, setPreviewOpen] = useState(false); // État pour gérer l'ouverture du modal de prévisualisation
+    const [previewOpen, setPreviewOpen] = useState(false);
+    const [imageName, setImageName] = useState(''); // Nouveau state pour le nom de l'image
 
-    // Fonction utilitaire pour convertir une couleur hex en RGB
     const hexToRgb = (hex) => {
-        // Retirer le '#' s'il est présent
         hex = hex.replace(/^#/, '');
-        // Support des codes courts (#RGB)
         if (hex.length === 3) {
             hex = hex.split('').map(c => c + c).join('');
         }
@@ -27,19 +25,16 @@ function ImagePage() {
         return { r, g, b };
     };
 
-    useEffect(() => {
-        console.log("selectedColor a changé :", selectedColor);
-    }, [selectedColor]);
-
     const handleImageUpload = (event) => {
         const file = event.target.files[0];
         const reader = new FileReader();
 
         reader.onload = () => {
             setImage(reader.result);
-            setOriginalImage(reader.result); // Stocker l'image originale
-            setImageHistory([reader.result]); // Réinitialiser l'historique
-            setColor('#000000'); // Réinitialiser la couleur sélectionnée
+            setOriginalImage(reader.result); 
+            setImageHistory([reader.result]);
+            setColor('#000000'); 
+            setImageName(file.name.split('.')[0]); // Extraire le nom de l'image sans extension
         };
 
         if (file) {
@@ -50,16 +45,16 @@ function ImagePage() {
     const cancelModification = () => {
         if (imageHistory.length > 1) {
             const newHistory = [...imageHistory];
-            newHistory.pop(); // Supprimer la dernière modification
-            const lastImage = newHistory[newHistory.length - 1]; // Obtenir l'image précédente
+            newHistory.pop(); 
+            const lastImage = newHistory[newHistory.length - 1]; 
             setImage(lastImage);
-            setImageHistory(newHistory); // Mettre à jour l'historique
+            setImageHistory(newHistory); 
         }
     };
 
     const applyModification = (newImage) => {
-        setImageHistory([...imageHistory, newImage]); // Sauvegarder l'état actuel dans l'historique
-        setImage(newImage); // Mettre à jour l'image avec la version modifiée
+        setImageHistory([...imageHistory, newImage]);
+        setImage(newImage); 
     };
 
     const changeImageColor = () => {
@@ -82,7 +77,7 @@ function ImagePage() {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
-        img.src = originalImage; // Utiliser l'image originale
+        img.src = originalImage;
 
         img.onload = () => {
             canvas.width = img.width;
@@ -93,23 +88,17 @@ function ImagePage() {
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
 
-            // Appliquer une teinte basée sur la couleur sélectionnée
             for (let i = 0; i < data.length; i += 4) {
-                // Mélange linéaire des couleurs
-                data[i] = data[i] * (1 - 0.5) + rgb.r * 0.5;       // Rouge
-                data[i + 1] = data[i + 1] * (1 - 0.5) + rgb.g * 0.5; // Vert
-                data[i + 2] = data[i + 2] * (1 - 0.5) + rgb.b * 0.5; // Bleu
-                // data[i + 3] reste inchangé (alpha)
+                data[i] = data[i] * (1 - 0.5) + rgb.r * 0.5;       
+                data[i + 1] = data[i + 1] * (1 - 0.5) + rgb.g * 0.5; 
+                data[i + 2] = data[i + 2] * (1 - 0.5) + rgb.b * 0.5; 
             }
 
             ctx.putImageData(imageData, 0, 0);
 
             const coloredImageUrl = canvas.toDataURL();
-            setImageHistory([originalImage, coloredImageUrl]); // Réinitialiser l'historique avec l'image originale et la couleur appliquée
-            setImage(coloredImageUrl); // Mettre à jour l'image
-
-            // Optionnel : Réinitialiser la couleur sélectionnée si nécessaire
-            // setColor('#000000'); // Décommentez cette ligne si vous souhaitez réinitialiser la couleur après l'application
+            setImageHistory([originalImage, coloredImageUrl]); 
+            setImage(coloredImageUrl); 
         };
 
         img.onerror = () => {
@@ -119,9 +108,10 @@ function ImagePage() {
 
     const deleteImage = () => {
         setImage(null);
-        setOriginalImage(null); // Supprimer l'image originale
-        setImageHistory([]); // Effacer l'historique
-        setColor('#000000'); // Réinitialiser la couleur sélectionnée
+        setOriginalImage(null); 
+        setImageHistory([]); 
+        setColor('#000000'); 
+        setImageName(''); // Réinitialiser le nom de l'image
     };
 
     const rotateImage = () => {
@@ -139,7 +129,7 @@ function ImagePage() {
             ctx.drawImage(img, -img.width / 2, -img.height / 2);
 
             const rotatedImageUrl = rotatedImage.toDataURL();
-            applyModification(rotatedImageUrl); // Appliquer et enregistrer la modification
+            applyModification(rotatedImageUrl);
         };
 
         img.onerror = () => {
@@ -163,16 +153,15 @@ function ImagePage() {
             const data = imageData.data;
 
             for (let i = 0; i < data.length; i += 4) {
-                data[i] = 255 - data[i];         // Inverser le Rouge
-                data[i + 1] = 255 - data[i + 1]; // Inverser le Vert
-                data[i + 2] = 255 - data[i + 2]; // Inverser le Bleu
-                // data[i + 3] reste inchangé (alpha)
+                data[i] = 255 - data[i];        
+                data[i + 1] = 255 - data[i + 1];
+                data[i + 2] = 255 - data[i + 2]; 
             }
 
             ctx.putImageData(imageData, 0, 0);
 
             const invertedImageUrl = canvas.toDataURL();
-            applyModification(invertedImageUrl); // Appliquer et enregistrer la modification
+            applyModification(invertedImageUrl);
         };
 
         img.onerror = () => {
@@ -205,13 +194,12 @@ function ImagePage() {
                 data[i] = grayscale;
                 data[i + 1] = grayscale;
                 data[i + 2] = grayscale;
-                // data[i + 3] reste inchangé (alpha)
             }
 
             ctx.putImageData(imageData, 0, 0);
 
             const grayscaleImageUrl = canvas.toDataURL();
-            applyModification(grayscaleImageUrl); // Appliquer et enregistrer la modification
+            applyModification(grayscaleImageUrl);
         };
 
         img.onerror = () => {
@@ -220,17 +208,17 @@ function ImagePage() {
     };
 
     const downloadImage = () => {
-        if (!image) return; // Ne rien faire si aucune image
+        if (!image) return;
 
         const link = document.createElement('a');
         link.href = image;
-        link.setAttribute('download', 'image.png'); // Nom du fichier téléchargé
+        console.log("Image à télécharger :", image);
+        link.setAttribute('download', `${imageName}-WTB.png`); // Utiliser le format {nom_image}-WTB
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link); // Nettoyer le DOM
+        document.body.removeChild(link);
     };
 
-    // Fonction pour gérer le clic sur le bouton de téléchargement (ouvre le modal)
     const handleDownloadClick = () => {
         setPreviewOpen(true);
     };
@@ -313,7 +301,7 @@ function ImagePage() {
                                         console.log("Couleur sélectionnée :", color.hex);
                                         setColor(color.hex);
                                     }}
-                                    disableAlpha // Désactiver l'alpha si non nécessaire
+                                    disableAlpha
                                 />
                                 <Button
                                     variant="contained"
@@ -328,7 +316,6 @@ function ImagePage() {
                     )}
                 </div>
 
-                {/* Modal de prévisualisation */}
                 <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} maxWidth="md" fullWidth>
                     <DialogTitle>Prévisualisation de l'image à télécharger</DialogTitle>
                     <DialogContent dividers>
