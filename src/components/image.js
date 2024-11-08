@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer from './footer';
+import PaintCanvas from './PaintCanvas';
 import { Button, Container, Typography, Dialog, DialogTitle, DialogContent, TextField, DialogActions, Box } from '@mui/material';
 import { ChromePicker } from 'react-color';
 
 function ImagePage() {
-    const [images, setImages] = useState([]); // Tableau pour plusieurs images
-    const [originalImages, setOriginalImages] = useState([]); // Images originales pour les traitements
-    const [imageHistory, setImageHistory] = useState([]); 
+    const [images, setImages] = useState([]); // Array for multiple images
+    const [originalImages, setOriginalImages] = useState([]); // Original images for treatments
+    const [imageHistory, setImageHistory] = useState([]);
     const [selectedColor, setColor] = useState('#000000');
     const [previewOpen, setPreviewOpen] = useState(false);
     const [imageUrl, setImageUrl] = useState('');
     const [imageName, setImageName] = useState('');
-    const [selectedImageIndex, setSelectedImageIndex] = useState(null); // Index de l'image sélectionnée pour modification
+    const [selectedImageIndex, setSelectedImageIndex] = useState(null); // Selected image index for modification
+    const [isPainting, setIsPainting] = useState(false);
 
     const hexToRgb = (hex) => {
         hex = hex.replace(/^#/, '');
@@ -28,7 +30,7 @@ function ImagePage() {
     };
 
     useEffect(() => {
-        console.log("selectedColor a changé :", selectedColor);
+        console.log("selectedColor changed:", selectedColor);
     }, [selectedColor]);
 
     const loadImageFromUrl = async (url) => {
@@ -56,7 +58,7 @@ function ImagePage() {
         const files = event.target.files;
 
         if (files.length > 4) {
-            alert("Vous pouvez importer un maximum de 4 images.");
+            alert("You can upload a maximum of 4 images.");
             return;
         }
 
@@ -77,7 +79,7 @@ function ImagePage() {
                 setImageHistory(imageUrls);
                 setImageName(fileArray[0].name.split('.')[0]);
             })
-            .catch((error) => console.error("Erreur de lecture de fichier", error));
+            .catch((error) => console.error("File read error", error));
     };
 
     const cancelModification = () => {
@@ -101,18 +103,13 @@ function ImagePage() {
 
     const changeImageColor = () => {
         if (!selectedColor || selectedImageIndex === null) {
-            console.log("Aucune couleur sélectionnée ou image non sélectionnée.");
-            return;
-        }
-
-        if (!originalImages.length) {
-            console.log("Aucune image originale disponible.");
+            console.log("No color selected or no image selected.");
             return;
         }
 
         const rgb = hexToRgb(selectedColor);
         if (!rgb) {
-            console.log("Format de couleur invalide :", selectedColor);
+            console.log("Invalid color format:", selectedColor);
             return;
         }
 
@@ -124,16 +121,15 @@ function ImagePage() {
         img.onload = () => {
             canvas.width = img.width;
             canvas.height = img.height;
-
             ctx.drawImage(img, 0, 0);
 
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
 
             for (let i = 0; i < data.length; i += 4) {
-                data[i] = data[i] * (1 - 0.5) + rgb.r * 0.5;       
-                data[i + 1] = data[i + 1] * (1 - 0.5) + rgb.g * 0.5; 
-                data[i + 2] = data[i + 2] * (1 - 0.5) + rgb.b * 0.5; 
+                data[i] = data[i] * (1 - 0.5) + rgb.r * 0.5;
+                data[i + 1] = data[i + 1] * (1 - 0.5) + rgb.g * 0.5;
+                data[i + 2] = data[i + 2] * (1 - 0.5) + rgb.b * 0.5;
             }
 
             ctx.putImageData(imageData, 0, 0);
@@ -143,7 +139,7 @@ function ImagePage() {
         };
 
         img.onerror = () => {
-            console.log("Erreur de chargement de l'image.");
+            console.log("Error loading image.");
         };
     };
 
@@ -183,7 +179,7 @@ function ImagePage() {
         };
 
         img.onerror = () => {
-            console.log("Erreur de chargement de l'image pour rotation.");
+            console.log("Error loading image for rotation.");
         };
     };
 
@@ -198,16 +194,15 @@ function ImagePage() {
         img.onload = () => {
             canvas.width = img.width;
             canvas.height = img.height;
-
             ctx.drawImage(img, 0, 0);
 
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
 
             for (let i = 0; i < data.length; i += 4) {
-                data[i] = 255 - data[i];        
+                data[i] = 255 - data[i];
                 data[i + 1] = 255 - data[i + 1];
-                data[i + 2] = 255 - data[i + 2]; 
+                data[i + 2] = 255 - data[i + 2];
             }
 
             ctx.putImageData(imageData, 0, 0);
@@ -217,7 +212,7 @@ function ImagePage() {
         };
 
         img.onerror = () => {
-            console.log("Erreur de chargement de l'image pour inversion.");
+            console.log("Error loading image for inversion.");
         };
     };
 
@@ -232,7 +227,6 @@ function ImagePage() {
         img.onload = () => {
             canvas.width = img.width;
             canvas.height = img.height;
-
             ctx.drawImage(img, 0, 0);
 
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -242,7 +236,6 @@ function ImagePage() {
                 const red = data[i];
                 const green = data[i + 1];
                 const blue = data[i + 2];
-
                 const grayscale = 0.299 * red + 0.587 * green + 0.114 * blue;
 
                 data[i] = grayscale;
@@ -257,7 +250,7 @@ function ImagePage() {
         };
 
         img.onerror = () => {
-            console.log("Erreur de chargement de l'image pour niveaux de gris.");
+            console.log("Error loading image for grayscale.");
         };
     };
 
@@ -290,7 +283,7 @@ function ImagePage() {
                     Image Page
                 </Typography>
 
-                {/* Upload de plusieurs images */}
+                {/* Upload multiple images */}
                 <input type="file" accept="image/*" onChange={handleImageUpload} multiple />
 
                 <TextField
@@ -326,7 +319,7 @@ function ImagePage() {
                                         onClick={() => setSelectedImageIndex(index)}
                                         style={{ marginTop: '10px', marginRight: '10px' }}
                                     >
-                                        Modifier
+                                        Edit
                                     </Button>
                                     <Button
                                         variant="contained"
@@ -334,7 +327,7 @@ function ImagePage() {
                                         onClick={() => downloadImage(index)}
                                         style={{ marginTop: '10px' }}
                                     >
-                                        Télécharger
+                                        Download
                                     </Button>
                                 </div>
                             </div>
@@ -350,7 +343,7 @@ function ImagePage() {
                             onClick={deleteImage}
                             style={{ marginRight: '10px', marginBottom: '10px' }}
                         >
-                            Supprimer l'image
+                            Delete Image
                         </Button>
                         <Button
                             variant="contained"
@@ -358,29 +351,41 @@ function ImagePage() {
                             onClick={cancelModification}
                             disabled={imageHistory.length <= 1}
                         >
-                            Annuler la dernière modification
+                            Undo Last Modification
                         </Button>
                         <Button
                             variant="contained"
                             style={{ marginRight: '10px', marginBottom: '10px' }}
                             onClick={rotateImage}
                         >
-                            Tourner
+                            Rotate
                         </Button>
                         <Button
                             variant="contained"
                             style={{ marginRight: '10px', marginBottom: '10px' }}
                             onClick={inverseImage}
                         >
-                            Inverser
+                            Invert
                         </Button>
                         <Button
                             variant="contained"
                             style={{ marginRight: '10px', marginBottom: '10px' }}
                             onClick={convertToGrayscale}
                         >
-                            Niveaux de gris
+                            Grayscale
                         </Button>
+                        <Button
+                            variant="contained"
+                            style={{ marginRight: '10px', marginBottom: '10px' }}
+                            onClick={() => setIsPainting(!isPainting)}
+                        >
+                            {isPainting ? 'Exit Paint Mode' : 'Paint Mode'}
+                        </Button>
+
+                        {isPainting && (
+                            <PaintCanvas image={images[selectedImageIndex]} applyModification={applyModification} />
+                        )}
+
                         <div style={{ display: 'flex', alignItems: 'center', marginTop: '10px' }}>
                             <ChromePicker
                                 color={selectedColor}
@@ -395,7 +400,7 @@ function ImagePage() {
                                 onClick={changeImageColor}
                                 style={{ marginLeft: '10px', marginBottom: '10px' }}
                             >
-                                Changer la couleur
+                                Change Color
                             </Button>
                         </div>
                     </div>
@@ -406,7 +411,7 @@ function ImagePage() {
                     position: 'relative',
                     bottom: 0,
                     width: '100%',
-                    mt: 2, 
+                    mt: 2,
                 }}
             >
                 <Footer />
