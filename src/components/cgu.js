@@ -1,10 +1,12 @@
-// src/components/ConditionsGenerales.js
-
 import React from 'react';
+import ResponsiveAppBar from './appBar';
+import Footer from './footer';
 import './cgu.css';
 
 const ConditionsGenerales = () => {
     return (
+        <>
+            <ResponsiveAppBar />
         <div class="container">
             <h1>Conditions générales d'utilisation du site WeTransformBetter</h1>
 
@@ -103,6 +105,8 @@ const ConditionsGenerales = () => {
                 <p>Le présent contrat dépend de la législation française. En cas de litige, les tribunaux compétents seront ceux du ressort du siège social de l’Éditeur.</p>
             </div>
         </div>
+        <Footer />
+    </>
 
   );
 }
