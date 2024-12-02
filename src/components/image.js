@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer2 from './footer'
 import PaintCanvas from './PaintCanvas';
-import { Button, Container, Typography, TextField, MenuItem, Select, FormControl, InputLabel, Box } from '@mui/material';
+import { Button, Container, Typography, TextField, MenuItem, Select, FormControl, InputLabel, Box, Slider } from '@mui/material';
 import { ChromePicker } from 'react-color';
 
 function ImagePage() {
@@ -16,6 +16,7 @@ function ImagePage() {
     const [selectedImageIndex, setSelectedImageIndex] = useState(null);
     const [isPainting, setIsPainting] = useState(false);
     const [filter, setFilter] = useState('');
+    const [blurIntensity, setBlurIntensity] = useState(5); 
 
     const hexToRgb = (hex) => {
         hex = hex.replace(/^#/, '');
@@ -34,10 +35,12 @@ function ImagePage() {
         console.log("selectedColor changed:", selectedColor);
     }, [selectedColor]);
     const applyFilter = (selectedFilter) => {
+        if (selectedImageIndex === null) return;
+    
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
-        img.src = images[selectedImageIndex]; 
+        img.src = originalImages[selectedImageIndex]; // Always start from the original image
     
         img.onload = () => {
             canvas.width = img.width;
@@ -56,6 +59,7 @@ function ImagePage() {
                         data[i + 2] = avg;
                     }
                     break;
+    
                 case 'sepia':
                     for (let i = 0; i < data.length; i += 4) {
                         const r = data[i];
@@ -67,6 +71,7 @@ function ImagePage() {
                         data[i + 2] = r * 0.272 + g * 0.534 + b * 0.131;
                     }
                     break;
+    
                 case 'invert':
                     for (let i = 0; i < data.length; i += 4) {
                         data[i] = 255 - data[i];
@@ -74,6 +79,7 @@ function ImagePage() {
                         data[i + 2] = 255 - data[i + 2];
                     }
                     break;
+    
                 case 'brightness':
                     const brightnessFactor = 1.2;
                     for (let i = 0; i < data.length; i += 4) {
@@ -82,6 +88,7 @@ function ImagePage() {
                         data[i + 2] *= brightnessFactor;
                     }
                     break;
+    
                 case 'contrast':
                     const contrastFactor = 1.5;
                     const intercept = 128 * (1 - contrastFactor);
@@ -91,10 +98,22 @@ function ImagePage() {
                         data[i + 2] = data[i + 2] * contrastFactor + intercept;
                     }
                     break;
+    
                 case 'blur':
-                    ctx.filter = 'blur(5px)';
-                    ctx.drawImage(canvas, 0, 0);
+                    ctx.filter = `blur(${blurIntensity}px)`;
+                    ctx.drawImage(img, 0, 0);
                     break;
+    
+                case 'glitch':
+                    for (let i = 0; i < data.length; i += 4) {
+                        if (Math.random() > 0.9) {
+                            data[i] = Math.min(data[i] + Math.random() * 50, 255); // Randomize red channel
+                            data[i + 1] = Math.max(data[i + 1] - Math.random() * 50, 0); // Randomize green channel
+                            data[i + 2] = Math.min(data[i + 2] + Math.random() * 50, 255); // Randomize blue channel
+                        }
+                    }
+                    break;
+    
                 default:
                     return;
             }
@@ -102,10 +121,16 @@ function ImagePage() {
             if (selectedFilter !== 'blur') {
                 ctx.putImageData(imageData, 0, 0);
             }
+    
             const filteredImageUrl = canvas.toDataURL();
-            applyModification(filteredImageUrl); 
+            applyModification(filteredImageUrl);
+        };
+    
+        img.onerror = () => {
+            console.log("Error loading image for filter.");
         };
     };
+    
     
     const handleFilterChange = (event) => {
         const selectedFilter = event.target.value;
@@ -439,9 +464,24 @@ function ImagePage() {
                                 <MenuItem value="invert">Invert</MenuItem>
                                 <MenuItem value="brightness">Brightness</MenuItem>
                                 <MenuItem value="contrast">Contrast</MenuItem>
+                                <MenuItem value="glitch">Glitch</MenuItem>
                                 <MenuItem value="blur">Blur</MenuItem>
                             </Select>
                         </FormControl>
+
+                        {filter === 'blur' && (
+                            <div>
+                                <Typography>Blur Intensity</Typography>
+                                <Slider
+                                    value={blurIntensity}
+                                    onChange={(e, newValue) => setBlurIntensity(newValue)}
+                                    step={1}
+                                    min={0}
+                                    max={20}
+                                    valueLabelDisplay="auto"
+                                />
+                            </div>
+                        )}
 
                         <Button
                             variant="contained"
