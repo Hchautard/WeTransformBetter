@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
-import Footer from './footer';
+import Footer2 from './footer'
 import PaintCanvas from './PaintCanvas';
 import { Button, Container, Typography, Dialog, DialogTitle, DialogContent, TextField, DialogActions, Box } from '@mui/material';
 import { ChromePicker } from 'react-color';
@@ -273,12 +273,12 @@ function ImagePage() {
         <>
             <ResponsiveAppBar />
             <Container sx={{
-                    margin: '5%',
-                    minHeight: 'calc(100vh - 64px - 300px)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                }}>
+                margin: '5%',
+                minHeight: 'calc(100vh - 64px - 300px)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+            }}>
                 <Typography variant="h4" gutterBottom>
                     Image Page
                 </Typography>
@@ -408,13 +408,16 @@ function ImagePage() {
             </Container>
             <Box
                 sx={{
-                    position: 'relative',
-                    bottom: 0,
-                    width: '100%',
-                    mt: 2,
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: "100vh",
+                    padding: 0, // Pas de padding
                 }}
             >
-                <Footer />
+                <Box sx={{ flex: 1, padding: 0 }}> {/* Contenu principal */}
+                    {/* Ajoutez ici votre contenu */}
+                </Box>
+                <Footer2 />
             </Box>
         </>
     );
