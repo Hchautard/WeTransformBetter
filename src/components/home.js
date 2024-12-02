@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Route, Routes} from 'react-router-dom';
 import '../App.css';
 import ResponsiveAppBar from './appBar';
 import Footer from './footer';
+import Footer2 from './footer2';
 
 function Home() {
   return (
