@@ -34,7 +34,7 @@ return (
                         href="/"
                         sx={{ color: 'inherit' }}
                     >
-                        <Avatar src="/logo_wb.png" alt="Description of the image" sx={{ width: 80, height: 80 }}/>
+                        <Avatar src="/logo.png" alt="Description of the image" sx={{ width: 80, height: 80 }}/>
                     </IconButton>
 
                 <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
