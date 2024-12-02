@@ -2,19 +2,20 @@ import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer2 from './footer'
 import PaintCanvas from './PaintCanvas';
-import { Button, Container, Typography, Dialog, DialogTitle, DialogContent, TextField, DialogActions, Box } from '@mui/material';
+import { Button, Container, Typography, TextField, MenuItem, Select, FormControl, InputLabel, Box } from '@mui/material';
 import { ChromePicker } from 'react-color';
 
 function ImagePage() {
-    const [images, setImages] = useState([]); // Array for multiple images
-    const [originalImages, setOriginalImages] = useState([]); // Original images for treatments
+    const [images, setImages] = useState([]);
+    const [originalImages, setOriginalImages] = useState([]);
     const [imageHistory, setImageHistory] = useState([]);
     const [selectedColor, setColor] = useState('#000000');
     const [previewOpen, setPreviewOpen] = useState(false);
     const [imageUrl, setImageUrl] = useState('');
     const [imageName, setImageName] = useState('');
-    const [selectedImageIndex, setSelectedImageIndex] = useState(null); // Selected image index for modification
+    const [selectedImageIndex, setSelectedImageIndex] = useState(null);
     const [isPainting, setIsPainting] = useState(false);
+    const [filter, setFilter] = useState('');
 
     const hexToRgb = (hex) => {
         hex = hex.replace(/^#/, '');
@@ -32,6 +33,85 @@ function ImagePage() {
     useEffect(() => {
         console.log("selectedColor changed:", selectedColor);
     }, [selectedColor]);
+    const applyFilter = (selectedFilter) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.src = images[selectedImageIndex]; 
+    
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+    
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+    
+            switch (selectedFilter) {
+                case 'grayscale':
+                    for (let i = 0; i < data.length; i += 4) {
+                        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                        data[i] = avg;
+                        data[i + 1] = avg;
+                        data[i + 2] = avg;
+                    }
+                    break;
+                case 'sepia':
+                    for (let i = 0; i < data.length; i += 4) {
+                        const r = data[i];
+                        const g = data[i + 1];
+                        const b = data[i + 2];
+    
+                        data[i] = r * 0.393 + g * 0.769 + b * 0.189;
+                        data[i + 1] = r * 0.349 + g * 0.686 + b * 0.168;
+                        data[i + 2] = r * 0.272 + g * 0.534 + b * 0.131;
+                    }
+                    break;
+                case 'invert':
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = 255 - data[i];
+                        data[i + 1] = 255 - data[i + 1];
+                        data[i + 2] = 255 - data[i + 2];
+                    }
+                    break;
+                case 'brightness':
+                    const brightnessFactor = 1.2;
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] *= brightnessFactor;
+                        data[i + 1] *= brightnessFactor;
+                        data[i + 2] *= brightnessFactor;
+                    }
+                    break;
+                case 'contrast':
+                    const contrastFactor = 1.5;
+                    const intercept = 128 * (1 - contrastFactor);
+                    for (let i = 0; i < data.length; i += 4) {
+                        data[i] = data[i] * contrastFactor + intercept;
+                        data[i + 1] = data[i + 1] * contrastFactor + intercept;
+                        data[i + 2] = data[i + 2] * contrastFactor + intercept;
+                    }
+                    break;
+                case 'blur':
+                    ctx.filter = 'blur(5px)';
+                    ctx.drawImage(canvas, 0, 0);
+                    break;
+                default:
+                    return;
+            }
+    
+            if (selectedFilter !== 'blur') {
+                ctx.putImageData(imageData, 0, 0);
+            }
+            const filteredImageUrl = canvas.toDataURL();
+            applyModification(filteredImageUrl); 
+        };
+    };
+    
+    const handleFilterChange = (event) => {
+        const selectedFilter = event.target.value;
+        setFilter(selectedFilter);
+        applyFilter(selectedFilter);
+    };
 
     const loadImageFromUrl = async (url) => {
         const response = await fetch(url, { mode: 'cors' });
@@ -153,6 +233,7 @@ function ImagePage() {
             setOriginalImages(newOriginalImages);
             setImageHistory([]);
             setColor('#000000');
+            setFilter('');
             setImageName('');
             setSelectedImageIndex(null);
         }
@@ -283,7 +364,6 @@ function ImagePage() {
                     Image Page
                 </Typography>
 
-                {/* Upload multiple images */}
                 <input type="file" accept="image/*" onChange={handleImageUpload} multiple />
 
                 <TextField
@@ -345,6 +425,24 @@ function ImagePage() {
                         >
                             Delete Image
                         </Button>
+                        <FormControl sx={{ marginLeft: 2, minWidth: 120 }}>
+                            <InputLabel id="filter-select-label">Filter</InputLabel>
+                            <Select
+                                labelId="filter-select-label"
+                                value={filter}
+                                onChange={handleFilterChange}
+                                displayEmpty
+                            >
+                                <MenuItem value="">None</MenuItem>
+                                <MenuItem value="grayscale">Grayscale</MenuItem>
+                                <MenuItem value="sepia">Sepia</MenuItem>
+                                <MenuItem value="invert">Invert</MenuItem>
+                                <MenuItem value="brightness">Brightness</MenuItem>
+                                <MenuItem value="contrast">Contrast</MenuItem>
+                                <MenuItem value="blur">Blur</MenuItem>
+                            </Select>
+                        </FormControl>
+
                         <Button
                             variant="contained"
                             style={{ marginRight: '10px', marginBottom: '10px' }}
@@ -411,11 +509,11 @@ function ImagePage() {
                     display: "flex",
                     flexDirection: "column",
                     minHeight: "100vh",
-                    padding: 0, // Pas de padding
+                    padding: 0,
                 }}
             >
-                <Box sx={{ flex: 1, padding: 0 }}> {/* Contenu principal */}
-                    {/* Ajoutez ici votre contenu */}
+                <Box sx={{ flex: 1, padding: 0 }}> 
+               
                 </Box>
                 <Footer2 />
             </Box>
