@@ -32,8 +32,11 @@ function ImagePage() {
     };
 
     useEffect(() => {
-        console.log("selectedColor changed:", selectedColor);
-    }, [selectedColor]);
+        if (filter === 'blur' && selectedImageIndex !== null) {
+            applyFilter('blur'); // Reapply blur whenever `blurIntensity` changes
+        }
+    }, [blurIntensity]); // Add a dependency on `blurIntensity`
+    
     const applyFilter = (selectedFilter) => {
         if (selectedImageIndex === null) return;
     
@@ -45,81 +48,78 @@ function ImagePage() {
         img.onload = () => {
             canvas.width = img.width;
             canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
     
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-    
-            switch (selectedFilter) {
-                case 'grayscale':
-                    for (let i = 0; i < data.length; i += 4) {
-                        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                        data[i] = avg;
-                        data[i + 1] = avg;
-                        data[i + 2] = avg;
-                    }
-                    break;
-    
-                case 'sepia':
-                    for (let i = 0; i < data.length; i += 4) {
-                        const r = data[i];
-                        const g = data[i + 1];
-                        const b = data[i + 2];
-    
-                        data[i] = r * 0.393 + g * 0.769 + b * 0.189;
-                        data[i + 1] = r * 0.349 + g * 0.686 + b * 0.168;
-                        data[i + 2] = r * 0.272 + g * 0.534 + b * 0.131;
-                    }
-                    break;
-    
-                case 'invert':
-                    for (let i = 0; i < data.length; i += 4) {
-                        data[i] = 255 - data[i];
-                        data[i + 1] = 255 - data[i + 1];
-                        data[i + 2] = 255 - data[i + 2];
-                    }
-                    break;
-    
-                case 'brightness':
-                    const brightnessFactor = 1.2;
-                    for (let i = 0; i < data.length; i += 4) {
-                        data[i] *= brightnessFactor;
-                        data[i + 1] *= brightnessFactor;
-                        data[i + 2] *= brightnessFactor;
-                    }
-                    break;
-    
-                case 'contrast':
-                    const contrastFactor = 1.5;
-                    const intercept = 128 * (1 - contrastFactor);
-                    for (let i = 0; i < data.length; i += 4) {
-                        data[i] = data[i] * contrastFactor + intercept;
-                        data[i + 1] = data[i + 1] * contrastFactor + intercept;
-                        data[i + 2] = data[i + 2] * contrastFactor + intercept;
-                    }
-                    break;
-    
-                case 'blur':
-                    ctx.filter = `blur(${blurIntensity}px)`;
-                    ctx.drawImage(img, 0, 0);
-                    break;
-    
-                case 'glitch':
-                    for (let i = 0; i < data.length; i += 4) {
-                        if (Math.random() > 0.9) {
-                            data[i] = Math.min(data[i] + Math.random() * 50, 255); // Randomize red channel
-                            data[i + 1] = Math.max(data[i + 1] - Math.random() * 50, 0); // Randomize green channel
-                            data[i + 2] = Math.min(data[i + 2] + Math.random() * 50, 255); // Randomize blue channel
-                        }
-                    }
-                    break;
-    
-                default:
-                    return;
+            if (selectedFilter === 'blur') {
+                ctx.filter = `blur(${blurIntensity}px)`; // Dynamically use the current blurIntensity
             }
     
+            ctx.drawImage(img, 0, 0);
+    
             if (selectedFilter !== 'blur') {
-                ctx.putImageData(imageData, 0, 0);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+    
+                switch (selectedFilter) {
+                    case 'grayscale':
+                        for (let i = 0; i < data.length; i += 4) {
+                            const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                            data[i] = avg;
+                            data[i + 1] = avg;
+                            data[i + 2] = avg;
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        break;
+                    case 'sepia':
+                        for (let i = 0; i < data.length; i += 4) {
+                            const r = data[i];
+                            const g = data[i + 1];
+                            const b = data[i + 2];
+                            data[i] = r * 0.393 + g * 0.769 + b * 0.189;
+                            data[i + 1] = r * 0.349 + g * 0.686 + b * 0.168;
+                            data[i + 2] = r * 0.272 + g * 0.534 + b * 0.131;
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        break;
+                    case 'invert':
+                        for (let i = 0; i < data.length; i += 4) {
+                            data[i] = 255 - data[i];
+                            data[i + 1] = 255 - data[i + 1];
+                            data[i + 2] = 255 - data[i + 2];
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        break;
+                    case 'brightness':
+                        const brightnessFactor = 1.2;
+                        for (let i = 0; i < data.length; i += 4) {
+                            data[i] *= brightnessFactor;
+                            data[i + 1] *= brightnessFactor;
+                            data[i + 2] *= brightnessFactor;
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        break;
+                    case 'contrast':
+                        const contrastFactor = 1.5;
+                        const intercept = 128 * (1 - contrastFactor);
+                        for (let i = 0; i < data.length; i += 4) {
+                            data[i] = data[i] * contrastFactor + intercept;
+                            data[i + 1] = data[i + 1] * contrastFactor + intercept;
+                            data[i + 2] = data[i + 2] * contrastFactor + intercept;
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        break;
+                    case 'glitch':
+                        for (let i = 0; i < data.length; i += 4) {
+                            if (Math.random() > 0.9) {
+                                data[i] = Math.min(data[i] + Math.random() * 50, 255);
+                                data[i + 1] = Math.max(data[i + 1] - Math.random() * 50, 0);
+                                data[i + 2] = Math.min(data[i + 2] + Math.random() * 50, 255);
+                            }
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        break;
+                    default:
+                        return;
+                }
             }
     
             const filteredImageUrl = canvas.toDataURL();
@@ -130,6 +130,7 @@ function ImagePage() {
             console.log("Error loading image for filter.");
         };
     };
+    
     
     
     const handleFilterChange = (event) => {
