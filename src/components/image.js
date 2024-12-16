@@ -2,10 +2,16 @@ import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer2 from './footer'
 import PaintCanvas from './PaintCanvas';
-import { Button, Container, Typography, TextField, MenuItem, Select, FormControl, InputLabel, Box, Slider } from '@mui/material';
+import { Button, Container, Typography, TextField, MenuItem, Select, FormControl, InputLabel, Box, Slider, Grid } from '@mui/material';
 import { ChromePicker } from 'react-color';
 
 function ImagePage() {
+    const stickers = [
+        "/sticker.png",
+        "/sticker2.png",
+        "/sticker3.png"
+    ];
+    
     const [images, setImages] = useState([]);
     const [originalImages, setOriginalImages] = useState([]);
     const [imageHistory, setImageHistory] = useState([]);
@@ -17,6 +23,47 @@ function ImagePage() {
     const [isPainting, setIsPainting] = useState(false);
     const [filter, setFilter] = useState('');
     const [blurIntensity, setBlurIntensity] = useState(5); 
+    const [isStickerMode, setIsStickerMode] = useState(false);
+    const [selectedSticker, setSelectedSticker] = useState(null);
+    const [stickerPosition, setStickerPosition] = useState({ x: 50, y: 50 });
+    const [stickerScale, setStickerScale] = useState(1);
+
+
+    const addStickerToImage = () => {
+        if (!selectedSticker || selectedImageIndex === null) return;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.src = images[selectedImageIndex];
+
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            const sticker = new Image();
+            sticker.src = selectedSticker;
+
+            sticker.onload = () => {
+                const stickerWidth = sticker.width * stickerScale;
+                const stickerHeight = sticker.height * stickerScale;
+
+                ctx.drawImage(
+                    sticker,
+                    stickerPosition.x,
+                    stickerPosition.y,
+                    stickerWidth,
+                    stickerHeight
+                );
+
+                const updatedImage = canvas.toDataURL();
+                applyModification(updatedImage);
+                setIsStickerMode(false); // Quitte le mode autocollant après application
+            };
+        };
+    };
+
 
     const hexToRgb = (hex) => {
         hex = hex.replace(/^#/, '');
@@ -452,7 +499,7 @@ function ImagePage() {
                             Delete Image
                         </Button>
                         <FormControl sx={{ marginLeft: 2, minWidth: 120 }}>
-                            <InputLabel id="filter-select-label">Filter</InputLabel>
+                      
                             <Select
                                 labelId="filter-select-label"
                                 value={filter}
@@ -542,7 +589,83 @@ function ImagePage() {
                                 Change Color
                             </Button>
                         </div>
+
+                        <div>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => setIsStickerMode(!isStickerMode)}
+                            style={{ marginBottom: '10px' }}
+                        >
+                            {isStickerMode ? "Cancel Sticker Mode" : "Add Sticker"}
+                        </Button>
+
+                        {isStickerMode && (
+                            <div>
+                                <Typography variant="h6">Choose a Sticker</Typography>
+                                <Grid container spacing={2}>
+                                    {stickers.map((sticker, index) => (
+                                        <Grid item xs={2} key={index}>
+                                            <img
+                                                src={sticker}
+                                                alt={`Sticker ${index}`}
+                                                style={{
+                                                    width: '100%',
+                                                    cursor: 'pointer',
+                                                    border: selectedSticker === sticker ? '2px solid blue' : 'none',
+                                                }}
+                                                onClick={() => setSelectedSticker(sticker)}
+                                            />
+                                        </Grid>
+                                    ))}
+                                </Grid>
+
+                                {selectedSticker && (
+                                    <div style={{ marginTop: '20px' }}>
+                                        <Typography>Sticker Position</Typography>
+                                        <Typography>X: {stickerPosition.x}, Y: {stickerPosition.y}</Typography>
+                                        <Slider
+                                            value={stickerPosition.x}
+                                            onChange={(e, newValue) => setStickerPosition({ ...stickerPosition, x: newValue })}
+                                            step={1}
+                                            min={0}
+                                            max={500} // Ajustez en fonction de la largeur max de l'image
+                                            valueLabelDisplay="auto"
+                                        />
+                                        <Slider
+                                            value={stickerPosition.y}
+                                            onChange={(e, newValue) => setStickerPosition({ ...stickerPosition, y: newValue })}
+                                            step={1}
+                                            min={0}
+                                            max={500} // Ajustez en fonction de la hauteur max de l'image
+                                            valueLabelDisplay="auto"
+                                        />
+
+                                        <Typography>Sticker Scale</Typography>
+                                        <Slider
+                                            value={stickerScale}
+                                            onChange={(e, newValue) => setStickerScale(newValue)}
+                                            step={0.1}
+                                            min={0.1}
+                                            max={3}
+                                            valueLabelDisplay="auto"
+                                        />
+
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={addStickerToImage}
+                                            style={{ marginTop: '10px' }}
+                                        >
+                                            Apply Sticker
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
+                    </div>
+                    
                 )}
             </Container>
             <Box
