@@ -5,6 +5,7 @@ import PaintCanvas from './PaintCanvas';
 import { Button, Container, Typography, TextField, MenuItem, Select, FormControl, InputLabel, Box } from '@mui/material';
 import { ChromePicker } from 'react-color';
 
+
 function ImagePage() {
     const [images, setImages] = useState([]);
     const [originalImages, setOriginalImages] = useState([]);
@@ -16,6 +17,8 @@ function ImagePage() {
     const [selectedImageIndex, setSelectedImageIndex] = useState(null);
     const [isPainting, setIsPainting] = useState(false);
     const [filter, setFilter] = useState('');
+    const [selectedIndexes, setSelectedIndexes] = useState([]);
+
 
     const hexToRgb = (hex) => {
         hex = hex.replace(/^#/, '');
@@ -120,6 +123,8 @@ function ImagePage() {
         return localUrl;
     };
 
+    
+
     const handleImageUrlSubmit = async () => {
         if (imageUrl) {
             try {
@@ -133,6 +138,21 @@ function ImagePage() {
             }
         }
     };
+
+
+    const handleImageClick = (index) => {
+        // Ajoute ou enlève l'index du tableau sélectionné
+        setSelectedIndexes((prevIndexes) => {
+            if (prevIndexes.includes(index)) {
+                // Si l'index est déjà sélectionné, on le retire
+                return prevIndexes.filter((i) => i !== index);
+            } else {
+                // Sinon, on l'ajoute
+                return [...prevIndexes, index];
+            }
+        });
+    };
+
 
     const handleImageUpload = (event) => {
         const files = event.target.files;
@@ -264,6 +284,7 @@ function ImagePage() {
         };
     };
 
+    
     const inverseImage = () => {
         if (selectedImageIndex === null) return;
 
@@ -335,6 +356,47 @@ function ImagePage() {
         };
     };
 
+    const handleEditAll = () => {
+        if (images.length === 0 || selectedImageIndex === null) return;
+    
+        const newImages = images.map((image, index) => {
+            // Exemple: Appliquer un filtre sur toutes les images
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.src = image;
+    
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+    
+                // Appliquer ici le filtre ou la modification que vous souhaitez sur toutes les images
+                // Exemple: Convertir en grayscale
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const red = data[i];
+                    const green = data[i + 1];
+                    const blue = data[i + 2];
+                    const grayscale = 0.299 * red + 0.587 * green + 0.114 * blue;
+    
+                    data[i] = grayscale;
+                    data[i + 1] = grayscale;
+                    data[i + 2] = grayscale;
+                }
+    
+                ctx.putImageData(imageData, 0, 0);
+                const grayscaleImageUrl = canvas.toDataURL();
+                newImages[index] = grayscaleImageUrl; // Mettre à jour l'image modifiée
+                if (index === images.length - 1) {
+                    setImages([...newImages]);
+                }
+            };
+        });
+    };
+
+    
     const downloadImage = (index) => {
         if (images.length === 0) return;
 
@@ -379,41 +441,82 @@ function ImagePage() {
                 </Button>
 
                 {images.length > 0 && (
-                    <div style={{ marginTop: '20px' }}>
-                        {images.map((img, index) => (
-                            <div key={index} style={{ marginBottom: '20px', textAlign: 'center' }}>
-                                <img
-                                    src={img}
-                                    alt={`Uploaded Image ${index + 1}`}
-                                    style={{
-                                        maxWidth: '100%',
-                                        maxHeight: '500px',
-                                        objectFit: 'contain',
-                                    }}
-                                    onClick={() => setSelectedImageIndex(index)}
-                                />
-                                <div>
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        onClick={() => setSelectedImageIndex(index)}
-                                        style={{ marginTop: '10px', marginRight: '10px' }}
-                                    >
-                                        Edit
-                                    </Button>
-                                    <Button
-                                        variant="contained"
-                                        color="secondary"
-                                        onClick={() => downloadImage(index)}
-                                        style={{ marginTop: '10px' }}
-                                    >
-                                        Download
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
+    <div>
+        {/* La grille des images */}
+        <div style={{
+            marginTop: '20px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)', // Deux colonnes
+            gap: '20px',
+        }}>
+            {/* Affichage des images et des boutons spécifiques */}
+            {images.map((img, index) => (
+                <div key={index} style={{
+                    textAlign: 'center',
+                    border: '2px solid black',  // Ajout d'un contour autour du carré
+                    padding: '10px',
+                    display: 'flex', // Flexbox pour disposer l'image et les boutons en colonne
+                    flexDirection: 'column', // Aligne l'image et les boutons verticalement
+                    justifyContent: 'space-between', // Espacement entre l'image et les boutons
+                    height: 'auto', // Laisse l'élément s'adapter à la taille du contenu
+                }}>
+                    <img
+                        src={img}
+                        alt={`Uploaded Image ${index + 1}`}
+                        style={{
+                            width: '100%',  // L'image occupe toute la largeur du conteneur
+                            height: 'auto',  // La hauteur s'ajuste automatiquement
+                            objectFit: 'contain',  // Garde le ratio d'aspect de l'image sans la couper
+                        }}
+                        onClick={() => setSelectedImageIndex(index)}
+                    />
+                    <div style={{ marginTop: '10px' }}>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => setSelectedImageIndex(index)}
+                            style={{ marginRight: '10px' }}
+                        >
+                            Edit
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => downloadImage(index)}
+                        >
+                            Download
+                        </Button>
                     </div>
-                )}
+                </div>
+            ))}
+        </div>
+
+        {/* Ligne de séparation hr en dehors de la grille */}
+        <hr style={{ margin: '20px 0', border: '1px solid #ccc' }} />
+
+        {/* Les boutons Edit All et Download All en dehors du grid */}
+        <div style={{ textAlign: 'center' }}>
+            <Button
+                variant="contained"
+                color="secondary"
+                style={{ marginRight: '10px' }}
+
+            >
+                Edit All
+            </Button>
+            <Button
+                variant="contained"
+                color="primary"
+            >
+                Download All
+            </Button>
+        </div>
+    </div>
+)}
+
+
+
+
 
                 {selectedImageIndex !== null && (
                     <div style={{ marginTop: '20px' }}>
