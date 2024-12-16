@@ -2,11 +2,17 @@ import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer2 from './footer'
 import PaintCanvas from './PaintCanvas';
-import { Button, Container, Typography, TextField, MenuItem, Select, FormControl, InputLabel, Box } from '@mui/material';
+import { Button, Container, Typography, TextField, MenuItem, Select, FormControl, InputLabel, Box, Slider, Grid } from '@mui/material';
 import { ChromePicker } from 'react-color';
 
 
 function ImagePage() {
+    const stickers = [
+        "/sticker.png",
+        "/sticker2.png",
+        "/sticker3.png"
+    ];
+    
     const [images, setImages] = useState([]);
     const [originalImages, setOriginalImages] = useState([]);
     const [imageHistory, setImageHistory] = useState([]);
@@ -17,7 +23,51 @@ function ImagePage() {
     const [selectedImageIndex, setSelectedImageIndex] = useState(null);
     const [isPainting, setIsPainting] = useState(false);
     const [filter, setFilter] = useState('');
+<<<<<<< HEAD
     const [selectedIndexes, setSelectedIndexes] = useState([]);
+=======
+    const [blurIntensity, setBlurIntensity] = useState(5); 
+    const [isStickerMode, setIsStickerMode] = useState(false);
+    const [selectedSticker, setSelectedSticker] = useState(null);
+    const [stickerPosition, setStickerPosition] = useState({ x: 50, y: 50 });
+    const [stickerScale, setStickerScale] = useState(1);
+
+
+    const addStickerToImage = () => {
+        if (!selectedSticker || selectedImageIndex === null) return;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.src = images[selectedImageIndex];
+
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            const sticker = new Image();
+            sticker.src = selectedSticker;
+
+            sticker.onload = () => {
+                const stickerWidth = sticker.width * stickerScale;
+                const stickerHeight = sticker.height * stickerScale;
+
+                ctx.drawImage(
+                    sticker,
+                    stickerPosition.x,
+                    stickerPosition.y,
+                    stickerWidth,
+                    stickerHeight
+                );
+
+                const updatedImage = canvas.toDataURL();
+                applyModification(updatedImage);
+                setIsStickerMode(false); // Quitte le mode autocollant après application
+            };
+        };
+    };
+>>>>>>> ee962e5bd15b54101a875e72c4c1feddf655e61f
 
 
     const hexToRgb = (hex) => {
@@ -34,81 +84,106 @@ function ImagePage() {
     };
 
     useEffect(() => {
-        console.log("selectedColor changed:", selectedColor);
-    }, [selectedColor]);
+        if (filter === 'blur' && selectedImageIndex !== null) {
+            applyFilter('blur'); // Reapply blur whenever `blurIntensity` changes
+        }
+    }, [blurIntensity]); // Add a dependency on `blurIntensity`
+    
     const applyFilter = (selectedFilter) => {
+        if (selectedImageIndex === null) return;
+    
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
-        img.src = images[selectedImageIndex]; 
+        img.src = originalImages[selectedImageIndex]; // Always start from the original image
     
         img.onload = () => {
             canvas.width = img.width;
             canvas.height = img.height;
+    
+            if (selectedFilter === 'blur') {
+                ctx.filter = `blur(${blurIntensity}px)`; // Dynamically use the current blurIntensity
+            }
+    
             ctx.drawImage(img, 0, 0);
     
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-    
-            switch (selectedFilter) {
-                case 'grayscale':
-                    for (let i = 0; i < data.length; i += 4) {
-                        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                        data[i] = avg;
-                        data[i + 1] = avg;
-                        data[i + 2] = avg;
-                    }
-                    break;
-                case 'sepia':
-                    for (let i = 0; i < data.length; i += 4) {
-                        const r = data[i];
-                        const g = data[i + 1];
-                        const b = data[i + 2];
-    
-                        data[i] = r * 0.393 + g * 0.769 + b * 0.189;
-                        data[i + 1] = r * 0.349 + g * 0.686 + b * 0.168;
-                        data[i + 2] = r * 0.272 + g * 0.534 + b * 0.131;
-                    }
-                    break;
-                case 'invert':
-                    for (let i = 0; i < data.length; i += 4) {
-                        data[i] = 255 - data[i];
-                        data[i + 1] = 255 - data[i + 1];
-                        data[i + 2] = 255 - data[i + 2];
-                    }
-                    break;
-                case 'brightness':
-                    const brightnessFactor = 1.2;
-                    for (let i = 0; i < data.length; i += 4) {
-                        data[i] *= brightnessFactor;
-                        data[i + 1] *= brightnessFactor;
-                        data[i + 2] *= brightnessFactor;
-                    }
-                    break;
-                case 'contrast':
-                    const contrastFactor = 1.5;
-                    const intercept = 128 * (1 - contrastFactor);
-                    for (let i = 0; i < data.length; i += 4) {
-                        data[i] = data[i] * contrastFactor + intercept;
-                        data[i + 1] = data[i + 1] * contrastFactor + intercept;
-                        data[i + 2] = data[i + 2] * contrastFactor + intercept;
-                    }
-                    break;
-                case 'blur':
-                    ctx.filter = 'blur(5px)';
-                    ctx.drawImage(canvas, 0, 0);
-                    break;
-                default:
-                    return;
-            }
-    
             if (selectedFilter !== 'blur') {
-                ctx.putImageData(imageData, 0, 0);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+    
+                switch (selectedFilter) {
+                    case 'grayscale':
+                        for (let i = 0; i < data.length; i += 4) {
+                            const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                            data[i] = avg;
+                            data[i + 1] = avg;
+                            data[i + 2] = avg;
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        break;
+                    case 'sepia':
+                        for (let i = 0; i < data.length; i += 4) {
+                            const r = data[i];
+                            const g = data[i + 1];
+                            const b = data[i + 2];
+                            data[i] = r * 0.393 + g * 0.769 + b * 0.189;
+                            data[i + 1] = r * 0.349 + g * 0.686 + b * 0.168;
+                            data[i + 2] = r * 0.272 + g * 0.534 + b * 0.131;
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        break;
+                    case 'invert':
+                        for (let i = 0; i < data.length; i += 4) {
+                            data[i] = 255 - data[i];
+                            data[i + 1] = 255 - data[i + 1];
+                            data[i + 2] = 255 - data[i + 2];
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        break;
+                    case 'brightness':
+                        const brightnessFactor = 1.2;
+                        for (let i = 0; i < data.length; i += 4) {
+                            data[i] *= brightnessFactor;
+                            data[i + 1] *= brightnessFactor;
+                            data[i + 2] *= brightnessFactor;
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        break;
+                    case 'contrast':
+                        const contrastFactor = 1.5;
+                        const intercept = 128 * (1 - contrastFactor);
+                        for (let i = 0; i < data.length; i += 4) {
+                            data[i] = data[i] * contrastFactor + intercept;
+                            data[i + 1] = data[i + 1] * contrastFactor + intercept;
+                            data[i + 2] = data[i + 2] * contrastFactor + intercept;
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        break;
+                    case 'glitch':
+                        for (let i = 0; i < data.length; i += 4) {
+                            if (Math.random() > 0.9) {
+                                data[i] = Math.min(data[i] + Math.random() * 50, 255);
+                                data[i + 1] = Math.max(data[i + 1] - Math.random() * 50, 0);
+                                data[i + 2] = Math.min(data[i + 2] + Math.random() * 50, 255);
+                            }
+                        }
+                        ctx.putImageData(imageData, 0, 0);
+                        break;
+                    default:
+                        return;
+                }
             }
+    
             const filteredImageUrl = canvas.toDataURL();
-            applyModification(filteredImageUrl); 
+            applyModification(filteredImageUrl);
+        };
+    
+        img.onerror = () => {
+            console.log("Error loading image for filter.");
         };
     };
+    
+    
     
     const handleFilterChange = (event) => {
         const selectedFilter = event.target.value;
@@ -529,7 +604,7 @@ function ImagePage() {
                             Delete Image
                         </Button>
                         <FormControl sx={{ marginLeft: 2, minWidth: 120 }}>
-                            <InputLabel id="filter-select-label">Filter</InputLabel>
+                      
                             <Select
                                 labelId="filter-select-label"
                                 value={filter}
@@ -542,9 +617,24 @@ function ImagePage() {
                                 <MenuItem value="invert">Invert</MenuItem>
                                 <MenuItem value="brightness">Brightness</MenuItem>
                                 <MenuItem value="contrast">Contrast</MenuItem>
+                                <MenuItem value="glitch">Glitch</MenuItem>
                                 <MenuItem value="blur">Blur</MenuItem>
                             </Select>
                         </FormControl>
+
+                        {filter === 'blur' && (
+                            <div>
+                                <Typography>Blur Intensity</Typography>
+                                <Slider
+                                    value={blurIntensity}
+                                    onChange={(e, newValue) => setBlurIntensity(newValue)}
+                                    step={1}
+                                    min={0}
+                                    max={20}
+                                    valueLabelDisplay="auto"
+                                />
+                            </div>
+                        )}
 
                         <Button
                             variant="contained"
@@ -604,7 +694,83 @@ function ImagePage() {
                                 Change Color
                             </Button>
                         </div>
+
+                        <div>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => setIsStickerMode(!isStickerMode)}
+                            style={{ marginBottom: '10px' }}
+                        >
+                            {isStickerMode ? "Cancel Sticker Mode" : "Add Sticker"}
+                        </Button>
+
+                        {isStickerMode && (
+                            <div>
+                                <Typography variant="h6">Choose a Sticker</Typography>
+                                <Grid container spacing={2}>
+                                    {stickers.map((sticker, index) => (
+                                        <Grid item xs={2} key={index}>
+                                            <img
+                                                src={sticker}
+                                                alt={`Sticker ${index}`}
+                                                style={{
+                                                    width: '100%',
+                                                    cursor: 'pointer',
+                                                    border: selectedSticker === sticker ? '2px solid blue' : 'none',
+                                                }}
+                                                onClick={() => setSelectedSticker(sticker)}
+                                            />
+                                        </Grid>
+                                    ))}
+                                </Grid>
+
+                                {selectedSticker && (
+                                    <div style={{ marginTop: '20px' }}>
+                                        <Typography>Sticker Position</Typography>
+                                        <Typography>X: {stickerPosition.x}, Y: {stickerPosition.y}</Typography>
+                                        <Slider
+                                            value={stickerPosition.x}
+                                            onChange={(e, newValue) => setStickerPosition({ ...stickerPosition, x: newValue })}
+                                            step={1}
+                                            min={0}
+                                            max={500} // Ajustez en fonction de la largeur max de l'image
+                                            valueLabelDisplay="auto"
+                                        />
+                                        <Slider
+                                            value={stickerPosition.y}
+                                            onChange={(e, newValue) => setStickerPosition({ ...stickerPosition, y: newValue })}
+                                            step={1}
+                                            min={0}
+                                            max={500} // Ajustez en fonction de la hauteur max de l'image
+                                            valueLabelDisplay="auto"
+                                        />
+
+                                        <Typography>Sticker Scale</Typography>
+                                        <Slider
+                                            value={stickerScale}
+                                            onChange={(e, newValue) => setStickerScale(newValue)}
+                                            step={0.1}
+                                            min={0.1}
+                                            max={3}
+                                            valueLabelDisplay="auto"
+                                        />
+
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={addStickerToImage}
+                                            style={{ marginTop: '10px' }}
+                                        >
+                                            Apply Sticker
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
+                    </div>
+                    
                 )}
             </Container>
             <Box
