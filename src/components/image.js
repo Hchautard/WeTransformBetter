@@ -2,8 +2,12 @@ import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer2 from './footer'
 import PaintCanvas from './PaintCanvas';
-import { Button, Container, Typography, TextField, MenuItem, Select, FormControl, InputLabel, Box, Slider } from '@mui/material';
+import { Button, Container, Typography, TextField, MenuItem, Select, FormControl, InputLabel, Box, Slider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
 import { ChromePicker } from 'react-color';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import DeleteIcon from '@mui/icons-material/Delete';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 
 function ImagePage() {
     const [images, setImages] = useState([]);
@@ -17,6 +21,113 @@ function ImagePage() {
     const [isPainting, setIsPainting] = useState(false);
     const [filter, setFilter] = useState('');
     const [blurIntensity, setBlurIntensity] = useState(5); 
+    const [layers, setLayers] = useState([]);
+    const [textDialogOpen, setTextDialogOpen] = useState(false);
+    const [textInput, setTextInput] = useState('');
+    const [textColor, setTextColor] = useState('#000000');
+    const [textSize, setTextSize] = useState(24);
+    const [textFont, setTextFont] = useState('Arial');
+    const [layerVisibility, setLayerVisibility] = useState({});
+
+    const addTextLayer = () => {
+        if (!textInput || selectedImageIndex === null) return;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.src = images[selectedImageIndex];
+
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            // Set text properties
+            ctx.font = `${textSize}px ${textFont}`;
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Draw text in the center of the image
+            ctx.fillText(textInput, canvas.width / 2, canvas.height / 2);
+
+            const textLayerUrl = canvas.toDataURL();
+            
+            const newLayer = {
+                id: `layer-${Date.now()}`,
+                type: 'text',
+                content: textInput,
+                image: textLayerUrl,
+                font: textFont,
+                size: textSize,
+                color: textColor
+            };
+
+            const updatedLayers = [...layers, newLayer];
+            setLayers(updatedLayers);
+
+             // Update visibility state
+             setLayerVisibility(prev => ({
+                ...prev,
+                [newLayer.id]: true
+            }));
+
+            setTextDialogOpen(false);
+            setTextInput('');
+        };
+    };
+
+    const removeLayer = (layerId) => {
+        setLayers(layers.filter(layer => layer.id !== layerId));
+    };
+
+    const toggleLayerVisibility = (layerId) => {
+        setLayerVisibility(prev => ({
+            ...prev,
+            [layerId]: !prev[layerId]
+        }));
+    };
+
+    const mergeLayersToImage = () => {
+        if (selectedImageIndex === null) return;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.src = images[selectedImageIndex];
+
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // Draw base image
+            ctx.drawImage(img, 0, 0);
+
+            // Draw visible text layers
+            layers.forEach(layer => {
+                if (layerVisibility[layer.id]) {
+                    const layerImg = new Image();
+                    layerImg.src = layer.image;
+                    ctx.drawImage(layerImg, 0, 0);
+                }
+            });
+
+            const mergedImageUrl = canvas.toDataURL();
+            applyModification(mergedImageUrl);
+            setLayers([]); // Clear layers after merging
+            setLayerVisibility({}); // Clear visibility state
+        };
+    };
+
+    const onDragEnd = (result) => {
+        if (!result.destination) return;
+
+        const reorderedLayers = Array.from(layers);
+        const [reorderedItem] = reorderedLayers.splice(result.source.index, 1);
+        reorderedLayers.splice(result.destination.index, 0, reorderedItem);
+
+        setLayers(reorderedLayers);
+    };
 
     const hexToRgb = (hex) => {
         hex = hex.replace(/^#/, '');
@@ -410,7 +521,7 @@ function ImagePage() {
                             <div key={index} style={{ marginBottom: '20px', textAlign: 'center' }}>
                                 <img
                                     src={img}
-                                    alt={`Uploaded Image ${index + 1}`}
+                                    alt={`Uploaded ${index + 1}`}
                                     style={{
                                         maxWidth: '100%',
                                         maxHeight: '500px',
@@ -426,6 +537,13 @@ function ImagePage() {
                                         style={{ marginTop: '10px', marginRight: '10px' }}
                                     >
                                         Edit
+                                    </Button>
+                                    <Button
+                                        variant="contained"
+                                        onClick={() => setTextDialogOpen(true)}
+                                        style={{ marginTop: '10px', marginRight: '10px' }}
+                                    >
+                                        Add Text Layer
                                     </Button>
                                     <Button
                                         variant="contained"
@@ -521,6 +639,17 @@ function ImagePage() {
                             {isPainting ? 'Exit Paint Mode' : 'Paint Mode'}
                         </Button>
 
+                        {layers.length > 0 && (
+                                        <Button
+                                            variant="contained"
+                                            color="secondary"
+                                            onClick={mergeLayersToImage}
+                                            style={{ marginRight: '10px', marginBottom: '10px' }}
+                                        >
+                                            Merge Layers
+                                        </Button>
+                                    )}
+
                         {isPainting && (
                             <PaintCanvas image={images[selectedImageIndex]} applyModification={applyModification} />
                         )}
@@ -558,6 +687,105 @@ function ImagePage() {
                 </Box>
                 <Footer2 />
             </Box>
+
+            {selectedImageIndex !== null && (
+                <div>
+                   
+
+                    {/* Layers Management */}
+                    <DragDropContext onDragEnd={onDragEnd}>
+                        <Droppable droppableId="layers">
+                            {(provided) => (
+                                <div {...provided.droppableProps} ref={provided.innerRef}>
+                                    {layers.map((layer, index) => (
+                                        <Draggable key={layer.id} draggableId={layer.id} index={index}>
+                                            {(provided) => (
+                                                <div
+                                                    ref={provided.innerRef}
+                                                    {...provided.draggableProps}
+                                                    {...provided.dragHandleProps}
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        marginBottom: '10px',
+                                                        padding: '10px',
+                                                        border: '1px solid #ddd',
+                                                        borderRadius: '4px'
+                                                    }}
+                                                >
+                                                    <img 
+                                                        src={layer.image} 
+                                                        alt="Layer" 
+                                                        style={{ 
+                                                            width: '50px', 
+                                                            height: '50px', 
+                                                            objectFit: 'contain', 
+                                                            marginRight: '10px' 
+                                                        }} 
+                                                    />
+                                                    <Typography style={{ flexGrow: 1 }}>
+                                                        {layer.content} ({layer.font}, {layer.size}px)
+                                                    </Typography>
+                                                    <Button 
+                                                        variant="outlined" 
+                                                        color="error" 
+                                                        onClick={() => removeLayer(layer.id)}
+                                                    >
+                                                        Remove
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </Draggable>
+                                    ))}
+                                    {provided.placeholder}
+                                </div>
+                            )}
+                        </Droppable>
+                    </DragDropContext>
+                </div>
+            )}
+
+            {/* Text Layer Dialog */}
+            <Dialog open={textDialogOpen} onClose={() => setTextDialogOpen(false)}>
+                <DialogTitle>Add Text Layer</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        autoFocus
+                        margin="dense"
+                        label="Text"
+                        fullWidth
+                        value={textInput}
+                        onChange={(e) => setTextInput(e.target.value)}
+                    />
+                    <FormControl fullWidth margin="normal">
+                        <InputLabel>Font</InputLabel>
+                        <Select
+                            value={textFont}
+                            onChange={(e) => setTextFont(e.target.value)}
+                        >
+                            <MenuItem value="Arial">Arial</MenuItem>
+                            <MenuItem value="Times New Roman">Times New Roman</MenuItem>
+                            <MenuItem value="Courier New">Courier New</MenuItem>
+                            <MenuItem value="Verdana">Verdana</MenuItem>
+                        </Select>
+                    </FormControl>
+                    <Slider
+                        value={textSize}
+                        onChange={(e, newValue) => setTextSize(newValue)}
+                        min={12}
+                        max={72}
+                        valueLabelDisplay="auto"
+                    />
+                    <ChromePicker
+                        color={textColor}
+                        onChangeComplete={(color) => setTextColor(color.hex)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setTextDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={addTextLayer} color="primary">Add Text</Button>
+                </DialogActions>
+            </Dialog>
         </>
     );
 }
