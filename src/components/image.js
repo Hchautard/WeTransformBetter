@@ -2,14 +2,18 @@ import React, { useState, useEffect } from 'react';
 import ResponsiveAppBar from './appBar';
 import Footer2 from './footer'
 import PaintCanvas from './PaintCanvas';
-import { Button, Container, Typography, TextField, MenuItem, Select, FormControl, InputLabel, Box, Slider, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import { Button, Container, Typography, TextField, MenuItem, Select, FormControl, InputLabel, Box, Slider, Dialog, DialogTitle, DialogContent, DialogActions, Grid } from '@mui/material';
 import { ChromePicker } from 'react-color';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import DeleteIcon from '@mui/icons-material/Delete';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+
 
 function ImagePage() {
+    const stickers = [
+        "/sticker.png",
+        "/sticker2.png",
+        "/sticker3.png"
+    ];
+    
     const [images, setImages] = useState([]);
     const [originalImages, setOriginalImages] = useState([]);
     const [imageHistory, setImageHistory] = useState([]);
@@ -20,7 +24,12 @@ function ImagePage() {
     const [selectedImageIndex, setSelectedImageIndex] = useState(null);
     const [isPainting, setIsPainting] = useState(false);
     const [filter, setFilter] = useState('');
+    const [selectedIndexes, setSelectedIndexes] = useState([]);
     const [blurIntensity, setBlurIntensity] = useState(5); 
+    const [isStickerMode, setIsStickerMode] = useState(false);
+    const [selectedSticker, setSelectedSticker] = useState(null);
+    const [stickerPosition, setStickerPosition] = useState({ x: 50, y: 50 });
+    const [stickerScale, setStickerScale] = useState(1);
     const [layers, setLayers] = useState([]);
     const [textDialogOpen, setTextDialogOpen] = useState(false);
     const [textInput, setTextInput] = useState('');
@@ -28,106 +37,6 @@ function ImagePage() {
     const [textSize, setTextSize] = useState(24);
     const [textFont, setTextFont] = useState('Arial');
     const [layerVisibility, setLayerVisibility] = useState({});
-
-    const addTextLayer = () => {
-        if (!textInput || selectedImageIndex === null) return;
-
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const img = new Image();
-        img.src = images[selectedImageIndex];
-
-        img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-
-            // Set text properties
-            ctx.font = `${textSize}px ${textFont}`;
-            ctx.fillStyle = textColor;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-
-            // Draw text in the center of the image
-            ctx.fillText(textInput, canvas.width / 2, canvas.height / 2);
-
-            const textLayerUrl = canvas.toDataURL();
-            
-            const newLayer = {
-                id: `layer-${Date.now()}`,
-                type: 'text',
-                content: textInput,
-                image: textLayerUrl,
-                font: textFont,
-                size: textSize,
-                color: textColor
-            };
-
-            const updatedLayers = [...layers, newLayer];
-            setLayers(updatedLayers);
-
-             // Update visibility state
-             setLayerVisibility(prev => ({
-                ...prev,
-                [newLayer.id]: true
-            }));
-
-            setTextDialogOpen(false);
-            setTextInput('');
-        };
-    };
-
-    const removeLayer = (layerId) => {
-        setLayers(layers.filter(layer => layer.id !== layerId));
-    };
-
-    const toggleLayerVisibility = (layerId) => {
-        setLayerVisibility(prev => ({
-            ...prev,
-            [layerId]: !prev[layerId]
-        }));
-    };
-
-    const mergeLayersToImage = () => {
-        if (selectedImageIndex === null) return;
-
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        const img = new Image();
-        img.src = images[selectedImageIndex];
-
-        img.onload = () => {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            
-            // Draw base image
-            ctx.drawImage(img, 0, 0);
-
-            // Draw visible text layers
-            layers.forEach(layer => {
-                if (layerVisibility[layer.id]) {
-                    const layerImg = new Image();
-                    layerImg.src = layer.image;
-                    ctx.drawImage(layerImg, 0, 0);
-                }
-            });
-
-            const mergedImageUrl = canvas.toDataURL();
-            applyModification(mergedImageUrl);
-            setLayers([]); // Clear layers after merging
-            setLayerVisibility({}); // Clear visibility state
-        };
-    };
-
-    const onDragEnd = (result) => {
-        if (!result.destination) return;
-
-        const reorderedLayers = Array.from(layers);
-        const [reorderedItem] = reorderedLayers.splice(result.source.index, 1);
-        reorderedLayers.splice(result.destination.index, 0, reorderedItem);
-
-        setLayers(reorderedLayers);
-    };
 
     const hexToRgb = (hex) => {
         hex = hex.replace(/^#/, '');
@@ -140,6 +49,51 @@ function ImagePage() {
         const g = (bigint >> 8) & 255;
         const b = bigint & 255;
         return { r, g, b };
+    };
+
+    const onDragEnd = (result) => {
+        if (!result.destination) return;
+
+        const reorderedLayers = Array.from(layers);
+        const [reorderedItem] = reorderedLayers.splice(result.source.index, 1);
+        reorderedLayers.splice(result.destination.index, 0, reorderedItem);
+
+        setLayers(reorderedLayers);
+    };
+
+    const addStickerToImage = () => {
+        if (!selectedSticker || selectedImageIndex === null) return;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.src = images[selectedImageIndex];
+
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            const sticker = new Image();
+            sticker.src = selectedSticker;
+
+            sticker.onload = () => {
+                const stickerWidth = sticker.width * stickerScale;
+                const stickerHeight = sticker.height * stickerScale;
+
+                ctx.drawImage(
+                    sticker,
+                    stickerPosition.x,
+                    stickerPosition.y,
+                    stickerWidth,
+                    stickerHeight
+                );
+
+                const updatedImage = canvas.toDataURL();
+                applyModification(updatedImage);
+                setIsStickerMode(false); // Quitte le mode autocollant après application
+            };
+        };
     };
 
     useEffect(() => {
@@ -242,7 +196,54 @@ function ImagePage() {
         };
     };
     
-    
+    const addTextLayer = () => {
+        if (!textInput || selectedImageIndex === null) return;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.src = images[selectedImageIndex];
+
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            // Set text properties
+            ctx.font = `${textSize}px ${textFont}`;
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            // Draw text in the center of the image
+            ctx.fillText(textInput, canvas.width / 2, canvas.height / 2);
+
+            const textLayerUrl = canvas.toDataURL();
+            
+            const newLayer = {
+                id: `layer-${Date.now()}`,
+                type: 'text',
+                content: textInput,
+                image: textLayerUrl,
+                font: textFont,
+                size: textSize,
+                color: textColor,
+                visible: true
+            };
+
+            const updatedLayers = [...layers, newLayer];
+            setLayers(updatedLayers);
+            
+            // Update visibility state
+            setLayerVisibility(prev => ({
+                ...prev,
+                [newLayer.id]: true
+            }));
+
+            setTextDialogOpen(false);
+            setTextInput('');
+        };
+    };
     
     const handleFilterChange = (event) => {
         const selectedFilter = event.target.value;
@@ -257,6 +258,8 @@ function ImagePage() {
         return localUrl;
     };
 
+    
+
     const handleImageUrlSubmit = async () => {
         if (imageUrl) {
             try {
@@ -270,6 +273,21 @@ function ImagePage() {
             }
         }
     };
+
+
+    const handleImageClick = (index) => {
+        // Ajoute ou enlève l'index du tableau sélectionné
+        setSelectedIndexes((prevIndexes) => {
+            if (prevIndexes.includes(index)) {
+                // Si l'index est déjà sélectionné, on le retire
+                return prevIndexes.filter((i) => i !== index);
+            } else {
+                // Sinon, on l'ajoute
+                return [...prevIndexes, index];
+            }
+        });
+    };
+
 
     const handleImageUpload = (event) => {
         const files = event.target.files;
@@ -401,6 +419,7 @@ function ImagePage() {
         };
     };
 
+    
     const inverseImage = () => {
         if (selectedImageIndex === null) return;
 
@@ -472,6 +491,87 @@ function ImagePage() {
         };
     };
 
+    const mergeLayersToImage = () => {
+        if (selectedImageIndex === null) return;
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        img.src = images[selectedImageIndex];
+
+        img.onload = () => {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // Draw base image
+            ctx.drawImage(img, 0, 0);
+
+            // Draw visible text layers
+            layers.forEach(layer => {
+                if (layerVisibility[layer.id]) {
+                    const layerImg = new Image();
+                    layerImg.src = layer.image;
+                    ctx.drawImage(layerImg, 0, 0);
+                }
+            });
+
+            const mergedImageUrl = canvas.toDataURL();
+            applyModification(mergedImageUrl);
+            setLayers([]); // Clear layers after merging
+            setLayerVisibility({}); // Clear visibility state
+        };
+    };
+
+    const handleEditAll = () => {
+        if (images.length === 0 || selectedImageIndex === null) return;
+    
+        const newImages = images.map((image, index) => {
+            // Exemple: Appliquer un filtre sur toutes les images
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.src = image;
+    
+            img.onload = () => {
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+    
+                // Appliquer ici le filtre ou la modification que vous souhaitez sur toutes les images
+                // Exemple: Convertir en grayscale
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                for (let i = 0; i < data.length; i += 4) {
+                    const red = data[i];
+                    const green = data[i + 1];
+                    const blue = data[i + 2];
+                    const grayscale = 0.299 * red + 0.587 * green + 0.114 * blue;
+    
+                    data[i] = grayscale;
+                    data[i + 1] = grayscale;
+                    data[i + 2] = grayscale;
+                }
+    
+                ctx.putImageData(imageData, 0, 0);
+                const grayscaleImageUrl = canvas.toDataURL();
+                newImages[index] = grayscaleImageUrl; // Mettre à jour l'image modifiée
+                if (index === images.length - 1) {
+                    setImages([...newImages]);
+                }
+            };
+        });
+    };
+
+    const removeLayer = (layerId) => {
+        setLayers(layers.filter(layer => layer.id !== layerId));
+        
+        // Remove visibility state for the layer
+        const updatedVisibility = {...layerVisibility};
+        delete updatedVisibility[layerId];
+        setLayerVisibility(updatedVisibility);
+    };
+
+    
     const downloadImage = (index) => {
         if (images.length === 0) return;
 
@@ -516,48 +616,110 @@ function ImagePage() {
                 </Button>
 
                 {images.length > 0 && (
-                    <div style={{ marginTop: '20px' }}>
-                        {images.map((img, index) => (
-                            <div key={index} style={{ marginBottom: '20px', textAlign: 'center' }}>
-                                <img
-                                    src={img}
-                                    alt={`Uploaded ${index + 1}`}
-                                    style={{
-                                        maxWidth: '100%',
-                                        maxHeight: '500px',
-                                        objectFit: 'contain',
-                                    }}
-                                    onClick={() => setSelectedImageIndex(index)}
-                                />
-                                <div>
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        onClick={() => setSelectedImageIndex(index)}
-                                        style={{ marginTop: '10px', marginRight: '10px' }}
-                                    >
-                                        Edit
-                                    </Button>
-                                    <Button
-                                        variant="contained"
-                                        onClick={() => setTextDialogOpen(true)}
-                                        style={{ marginTop: '10px', marginRight: '10px' }}
-                                    >
-                                        Add Text Layer
-                                    </Button>
-                                    <Button
-                                        variant="contained"
-                                        color="secondary"
-                                        onClick={() => downloadImage(index)}
-                                        style={{ marginTop: '10px' }}
-                                    >
-                                        Download
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
+    <div>
+        {/* La grille des images */}
+        <div style={{
+            marginTop: '20px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)', // Deux colonnes
+            gap: '20px',
+        }}>
+            {/* Affichage des images et des boutons spécifiques */}
+            {images.map((img, index) => (
+                <div key={index} style={{
+                    textAlign: 'center',
+                    border: '2px solid black',  // Ajout d'un contour autour du carré
+                    padding: '10px',
+                    display: 'flex', // Flexbox pour disposer l'image et les boutons en colonne
+                    flexDirection: 'column', // Aligne l'image et les boutons verticalement
+                    justifyContent: 'space-between', // Espacement entre l'image et les boutons
+                    height: 'auto', // Laisse l'élément s'adapter à la taille du contenu
+                }}>
+                    <img
+                        src={img}
+                        alt={`Uploaded ${index + 1}`}
+                        style={{
+                            width: '100%',  // L'image occupe toute la largeur du conteneur
+                            height: 'auto',  // La hauteur s'ajuste automatiquement
+                            objectFit: 'contain',  // Garde le ratio d'aspect de l'image sans la couper
+                        }}
+                        onClick={() => setSelectedImageIndex(index)}
+                    />
+                    <div style={{ marginTop: '10px' }}>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => setSelectedImageIndex(index)}
+                            style={{ marginRight: '10px' }}
+                        >
+                            Edit
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => downloadImage(index)}
+                        >
+                            Download
+                        </Button>
+                        <Button
+                            variant="contained"
+                            onClick={() => setTextDialogOpen(true)}
+                            style={{ marginRight: '10px', marginBottom: '10px' }}
+                        >
+                        Add Text Layer
+                        </Button>
+                        {layers.length > 0 && (
+                            <>
+                                <Button
+                                    variant="contained"
+                                    color="secondary"
+                                    onClick={mergeLayersToImage}
+                                    style={{ marginRight: '10px', marginBottom: '10px' }}
+                                >
+                                    Merge Layers
+                                </Button>
+
+                                <Button
+                                    variant="contained"
+                                    color="secondary"
+                                    onClick={() => removeLayer(layers[index].id)}
+                                    style={{ marginRight: '10px', marginBottom: '10px' }}
+                                >
+                                    Remove Layer
+                                </Button>
+                            </>
+                        )}
                     </div>
-                )}
+                </div>
+            ))}
+        </div>
+
+        {/* Ligne de séparation hr en dehors de la grille */}
+        <hr style={{ margin: '20px 0', border: '1px solid #ccc' }} />
+
+        {/* Les boutons Edit All et Download All en dehors du grid */}
+        <div style={{ textAlign: 'center' }}>
+            <Button
+                variant="contained"
+                color="secondary"
+                style={{ marginRight: '10px' }}
+
+            >
+                Edit All
+            </Button>
+            <Button
+                variant="contained"
+                color="primary"
+            >
+                Download All
+            </Button>
+        </div>
+    </div>
+)}
+
+
+
+
 
                 {selectedImageIndex !== null && (
                     <div style={{ marginTop: '20px' }}>
@@ -570,7 +732,7 @@ function ImagePage() {
                             Delete Image
                         </Button>
                         <FormControl sx={{ marginLeft: 2, minWidth: 120 }}>
-                            <InputLabel id="filter-select-label">Filter</InputLabel>
+                      
                             <Select
                                 labelId="filter-select-label"
                                 value={filter}
@@ -671,7 +833,83 @@ function ImagePage() {
                                 Change Color
                             </Button>
                         </div>
+
+                        <div>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => setIsStickerMode(!isStickerMode)}
+                            style={{ marginBottom: '10px' }}
+                        >
+                            {isStickerMode ? "Cancel Sticker Mode" : "Add Sticker"}
+                        </Button>
+
+                        {isStickerMode && (
+                            <div>
+                                <Typography variant="h6">Choose a Sticker</Typography>
+                                <Grid container spacing={2}>
+                                    {stickers.map((sticker, index) => (
+                                        <Grid item xs={2} key={index}>
+                                            <img
+                                                src={sticker}
+                                                alt={`Sticker ${index}`}
+                                                style={{
+                                                    width: '100%',
+                                                    cursor: 'pointer',
+                                                    border: selectedSticker === sticker ? '2px solid blue' : 'none',
+                                                }}
+                                                onClick={() => setSelectedSticker(sticker)}
+                                            />
+                                        </Grid>
+                                    ))}
+                                </Grid>
+
+                                {selectedSticker && (
+                                    <div style={{ marginTop: '20px' }}>
+                                        <Typography>Sticker Position</Typography>
+                                        <Typography>X: {stickerPosition.x}, Y: {stickerPosition.y}</Typography>
+                                        <Slider
+                                            value={stickerPosition.x}
+                                            onChange={(e, newValue) => setStickerPosition({ ...stickerPosition, x: newValue })}
+                                            step={1}
+                                            min={0}
+                                            max={500} // Ajustez en fonction de la largeur max de l'image
+                                            valueLabelDisplay="auto"
+                                        />
+                                        <Slider
+                                            value={stickerPosition.y}
+                                            onChange={(e, newValue) => setStickerPosition({ ...stickerPosition, y: newValue })}
+                                            step={1}
+                                            min={0}
+                                            max={500} // Ajustez en fonction de la hauteur max de l'image
+                                            valueLabelDisplay="auto"
+                                        />
+
+                                        <Typography>Sticker Scale</Typography>
+                                        <Slider
+                                            value={stickerScale}
+                                            onChange={(e, newValue) => setStickerScale(newValue)}
+                                            step={0.1}
+                                            min={0.1}
+                                            max={3}
+                                            valueLabelDisplay="auto"
+                                        />
+
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={addStickerToImage}
+                                            style={{ marginTop: '10px' }}
+                                        >
+                                            Apply Sticker
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
+                    </div>
+                    
                 )}
             </Container>
             <Box
@@ -773,7 +1011,7 @@ function ImagePage() {
                         value={textSize}
                         onChange={(e, newValue) => setTextSize(newValue)}
                         min={12}
-                        max={72}
+                        max={1000}
                         valueLabelDisplay="auto"
                     />
                     <ChromePicker
