@@ -21,6 +21,7 @@ import {
   Grid,
 } from "@mui/material";
 import { ChromePicker } from "react-color";
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 function ImagePage() {
@@ -347,6 +348,19 @@ function ImagePage() {
     setImages(newImages);
   };
 
+  const handleDownloadAll = () => {
+    if (images.length === 0) return;
+  
+    images.forEach((image, index) => {
+      const link = document.createElement("a");
+      link.href = image;
+      link.download = `${imageName ? imageName : 'image'}-${index + 1}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+  };
+
   const changeImageColor = () => {
     if (!selectedColor || selectedImageIndex === null) {
       console.log("No color selected or no image selected.");
@@ -533,42 +547,98 @@ function ImagePage() {
   };
 
   const handleEditAll = () => {
-    if (images.length === 0 || selectedImageIndex === null) return;
-
-    const newImages = images.map((image, index) => {
-      // Exemple: Appliquer un filtre sur toutes les images
+    if (images.length === 0) return;
+  
+    const updatedImages = images.map((image) => {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
       const img = new Image();
       img.src = image;
-
-      img.onload = () => {
-        canvas.width = img.width;
-        canvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-
-        // Appliquer ici le filtre ou la modification que vous souhaitez sur toutes les images
-        // Exemple: Convertir en grayscale
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-          const red = data[i];
-          const green = data[i + 1];
-          const blue = data[i + 2];
-          const grayscale = 0.299 * red + 0.587 * green + 0.114 * blue;
-
-          data[i] = grayscale;
-          data[i + 1] = grayscale;
-          data[i + 2] = grayscale;
-        }
-
-        ctx.putImageData(imageData, 0, 0);
-        const grayscaleImageUrl = canvas.toDataURL();
-        newImages[index] = grayscaleImageUrl; // Mettre à jour l'image modifiée
-        if (index === images.length - 1) {
-          setImages([...newImages]);
-        }
-      };
+  
+      return new Promise((resolve) => {
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+  
+          // Apply the selected filter to each image
+          if (filter) {
+            if (filter === "blur") {
+              ctx.filter = `blur(${blurIntensity}px)`;
+              ctx.drawImage(img, 0, 0);
+            } else {
+              const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+              const data = imageData.data;
+  
+              switch (filter) {
+                case "grayscale":
+                  for (let i = 0; i < data.length; i += 4) {
+                    const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                    data[i] = avg;
+                    data[i + 1] = avg;
+                    data[i + 2] = avg;
+                  }
+                  break;
+                case "sepia":
+                  for (let i = 0; i < data.length; i += 4) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    data[i] = r * 0.393 + g * 0.769 + b * 0.189;
+                    data[i + 1] = r * 0.349 + g * 0.686 + b * 0.168;
+                    data[i + 2] = r * 0.272 + g * 0.534 + b * 0.131;
+                  }
+                  break;
+                case "invert":
+                  for (let i = 0; i < data.length; i += 4) {
+                    data[i] = 255 - data[i];
+                    data[i + 1] = 255 - data[i + 1];
+                    data[i + 2] = 255 - data[i + 2];
+                  }
+                  break;
+                case "brightness":
+                  const brightnessFactor = 1.2;
+                  for (let i = 0; i < data.length; i += 4) {
+                    data[i] *= brightnessFactor;
+                    data[i + 1] *= brightnessFactor;
+                    data[i + 2] *= brightnessFactor;
+                  }
+                  break;
+                case "contrast":
+                  const contrastFactor = 1.5;
+                  const intercept = 128 * (1 - contrastFactor);
+                  for (let i = 0; i < data.length; i += 4) {
+                    data[i] = data[i] * contrastFactor + intercept;
+                    data[i + 1] = data[i + 1] * contrastFactor + intercept;
+                    data[i + 2] = data[i + 2] * contrastFactor + intercept;
+                  }
+                  break;
+                case "glitch":
+                  for (let i = 0; i < data.length; i += 4) {
+                    if (Math.random() > 0.9) {
+                      data[i] = Math.min(data[i] + Math.random() * 50, 255);
+                      data[i + 1] = Math.max(data[i + 1] - Math.random() * 50, 0);
+                      data[i + 2] = Math.min(data[i + 2] + Math.random() * 50, 255);
+                    }
+                  }
+                  break;
+                default:
+                  break;
+              }
+              ctx.putImageData(imageData, 0, 0);
+            }
+          }
+  
+          const newImageUrl = canvas.toDataURL();
+          resolve(newImageUrl);
+        };
+      });
+    });
+  
+    Promise.all(updatedImages).then((newImages) => {
+      setImages(newImages);
+      setOriginalImages(newImages);
+      setImageHistory(newImages);
     });
   };
 
@@ -609,7 +679,7 @@ function ImagePage() {
         }}
       >
         <Typography variant="h4" gutterBottom>
-          Image Page
+          Page de modification
         </Typography>
 
         <Divider/>
@@ -689,7 +759,7 @@ function ImagePage() {
                     alt={`Uploaded ${index + 1}`}
                     style={{
                       width: "100%", // L'image occupe toute la largeur du conteneur
-                      height: "auto", // La hauteur s'ajuste automatiquement
+                      height: "400px", // La hauteur s'ajuste automatiquement
                       objectFit: "contain", // Garde le ratio d'aspect de l'image sans la couper
                     }}
                     onClick={() => setSelectedImageIndex(index)}
@@ -720,14 +790,19 @@ function ImagePage() {
 
             {/* Les boutons Edit All et Download All en dehors du grid */}
             <div style={{ textAlign: "center" }}>
-              <Button
+              {/* <Button
                 variant="contained"
                 color="secondary"
                 style={{ marginRight: "10px" }}
+                onClick={handleEditAll}
               >
                 Edit All
-              </Button>
-              <Button variant="contained" color="primary">
+              </Button> */}
+              <Button 
+                variant="contained" 
+                color="primary"
+                onClick={handleDownloadAll}
+              >
                 Download All
               </Button>
             </div>
@@ -815,7 +890,7 @@ function ImagePage() {
             <Button
               variant="contained"
               onClick={() => setTextDialogOpen(true)}
-              style={{ margin: "10px", marginLeft: "10px" }}
+              style={{ marginLeft: "10px", marginBottom: "10px" }}
             >
               Add Text Layer
             </Button>
@@ -841,38 +916,7 @@ function ImagePage() {
               </>
             )}
 
-            {isPainting && (
-              <PaintCanvas
-                image={images[selectedImageIndex]}
-                applyModification={applyModification}
-              />
-            )}
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginTop: "10px",
-              }}
-            >
-              <ChromePicker
-                color={selectedColor}
-                onChangeComplete={(color) => {
-                  setColor(color.hex);
-                }}
-                disableAlpha
-              />
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={changeImageColor}
-                style={{ marginLeft: "10px", marginBottom: "10px" }}
-              >
-                Change Color
-              </Button>
-            </div>
-
-            <div>
+<div>
               <Button
                 variant="contained"
                 color="secondary"
@@ -961,6 +1005,39 @@ function ImagePage() {
                 </div>
               )}
             </div>
+
+            {isPainting && (
+              <PaintCanvas
+                image={images[selectedImageIndex]}
+                applyModification={applyModification}
+              />
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                marginTop: "10px",
+              }}
+            >
+              <ChromePicker
+                color={selectedColor}
+                onChangeComplete={(color) => {
+                  setColor(color.hex);
+                }}
+                disableAlpha
+              />
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={changeImageColor}
+                style={{ marginLeft: "10px", marginBottom: "10px" }}
+              >
+                Change Color
+              </Button>
+            </div>
+
+            
           </div>
         )}
       </Container>

@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { ChromePicker } from 'react-color';
 import { Box, Slider, Typography, Button } from '@mui/material';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+
 
 function PaintCanvas({ image, applyModification }) {
     const canvasRef = useRef(null);
@@ -72,6 +74,7 @@ function PaintCanvas({ image, applyModification }) {
                     color={brushColor}
                     onChangeComplete={(color) => setBrushColor(color.hex)}
                     disableAlpha
+                    icon={false}
                 />
                 <Box sx={{ ml: 3 }}>
                     <Typography gutterBottom>Brush Size</Typography>
